@@ -41,18 +41,21 @@ Expression* SymbolTable::expression (int i)
 
 Expression* SymbolTable::expression(string* s)
 {
-    cout << "expression string '" << s->c_str() << "'" << endl;
-    return new Expression(findSymbol(s));
+    cout << "expression(string) '" << s->c_str() << "'" << endl;
+    Symbol *sym = findSymbol(s);
+    cout << "expression(string) symbol " << sym << endl;
+    return new Expression(sym);
 }
 
 Expression* SymbolTable::lValue(Symbol* s)
 {
-    return new Expression(s);
+    Expression *e = new Expression(s);
+    return e;
 }
 
 Expression* SymbolTable::expression_string(string* s)
 {
-    cout << "expression string '" << s->c_str() << "'" << endl;
+    cout << "expression_string '" << s->c_str() << "'" << endl;
     return new Expression(*s);
 }
 
@@ -62,7 +65,7 @@ Symbol* SymbolTable::findSymbol(string* s)
     {
         if(symbols[i]->name == *s)
         {
-            cout << "found symbol " << *s << " val: " << symbols[i]->value << endl;
+            cout << "found symbol " << *s << " val: " << symbols[i]->value << " " << symbols[i] << endl;
             return symbols[i];
         }
     }
@@ -81,7 +84,9 @@ void SymbolTable::create_vars(int type)
 
     for(unsigned int i = 0; i < var_list.size(); i++)
     {
-        symbols.push_back(new Symbol(var_list[i], 0, cur_offset));
+        Symbol *s = new Symbol(var_list[i], 1, cur_offset);
+        cout << "creating symbol " << var_list[i] << " " << s << endl;
+        symbols.push_back(s);
         cur_offset -= 4;
     }
 

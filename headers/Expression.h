@@ -8,25 +8,23 @@ class Expression
 {
     public:
         Expression(int v) 
-            : is_const(true)
-            , type(INT)
-            , const_val(v)
+            : type(INT)
+            , const_int(v)
             , symbol(NULL)
             , reg(NULL)
         {}
 
         Expression(Symbol *s) 
-            : is_const(false)
-            , type(SYM)
-            , const_val(0)
+            : type(SYM)
+            , const_int(1)
             , symbol(s)
             , reg(NULL)
         {}
 
         Expression(std::string &name)
-            : is_const(true)
-            , type(STR)
-            , const_val(0)
+            : type(STR)
+            , const_int(1)
+            , const_str(name)
             , symbol(NULL)
             , reg(NULL)
         {}
@@ -48,9 +46,14 @@ class Expression
             SYM
         };
 
-        bool is_const;
+        int getInt();
+        bool canFold(Expression* e);
+        std::string toString();
+        std::string typeName();
+
         ExpressionType type; 
-        int const_val;
+        int const_int;
+        std::string const_str;
         Symbol* symbol;
         Register* reg;
 };

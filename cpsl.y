@@ -127,7 +127,7 @@ statement: assignment
          ;
 assignment: lValue ASSIGNOSYM expression
           ;
-lValue: IDENTSYM lValueHelper { SymbolTable::instance()->findSymbol($1); }
+lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol($1); }
       ;
 lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM
@@ -224,7 +224,7 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
           | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
           | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
-          | lValue { SymbolTable::instance()->lValue($1); }
+          | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
 expressionList: expression
           | expressionList COMMAOSYM expression

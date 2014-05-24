@@ -4,61 +4,29 @@
 
 using namespace std;
 
+extern int yylineno;// defined and maintained in lex.cpp
+
 Expression* Expression::unimp(Expression* e)
 {
-    cerr << "Unimplemented function " << __FUNCTION__ << endl;
+    cerr << "Unimplemented function " << __FUNCTION__ << " line: " << yylineno << endl;
     exit(1);
 }
 
 Expression* Expression::plus(Expression* e)
 {
-    if(is_const && e->is_const && type == INT && e->type == INT)
+    if(canFold(e))
     {
-        cout << "const adding " << const_val << "+" << e->const_val << endl;
-        const_val += e->const_val;
+        cout << "const adding " << const_int << "+" << e->const_int << endl;
+        const_int += e->const_int;
         delete e;
     }
-    else if(type == INT && e->type == INT)
+    else if(type == SYM && e->type == SYM)
     {
-        if(!is_const && !symbol)
-        {
-            cerr << "lhs missing symbol on expression " << endl;
-            exit(1);
-        }
-
-        if(!e->is_const && !e->symbol)
-        {
-            cerr << "rhs missing symbol on expression " << endl;
-            exit(1);
-        }
-
-        cout << "here " << is_const << " " << symbol << endl;
-        int v = is_const ? const_val : symbol->value;
-        cout << "here" << endl;
-        int ev = e->is_const ? e->const_val : e->symbol->value;
-        cout << "here" << endl;
-        return new Expression(v + ev);
+        return new Expression(getInt() * e->getInt());
     }
     else
     {
-        cerr << "unimp add with non const" << endl;
-        exit(1);
-    }
-
-    return this;
-}
-
-Expression* Expression::mul(Expression* e)
-{
-    if(is_const && e->is_const && type == INT && e->type == INT)
-    {
-        cout << "const multiplying " << const_val << "*" << e->const_val << endl;
-        const_val *= e->const_val;
-        delete e;
-    }
-    else
-    {
-        cerr << "unimp mul with non const" << endl;
+        cerr << "Unimplemented or incorret add type " << type << " " << e->type << " line: " << yylineno << endl;
         exit(1);
     }
 
@@ -67,32 +35,70 @@ Expression* Expression::mul(Expression* e)
 
 Expression* Expression::sub(Expression* e)
 {
-    if(is_const && e->is_const && type == INT && e->type == INT)
+    cout << "sub " << toString() << " " << e->toString() << endl;
+    if(canFold(e))
     {
-        cout << "const subtracting " << const_val << "-" << e->const_val << endl;
-        const_val -= e->const_val;
+        cout << "const subtracting " << const_int << "-" << e->const_int << endl;
+        const_int -= e->const_int;
         delete e;
+    }
+    else if(type == SYM && e->type == SYM)
+    {
+        return new Expression(getInt() - e->getInt());
     }
     else
     {
-        cerr << "unimp sub with non const" << endl;
+        cerr << "unimp sub with non const" << " line: " << yylineno << endl;
         exit(1);
     }
 
     return this;
 }
 
-Expression* Expression::div(Expression* e)
+Expression* Expression::mul(Expression* e)
 {
-    if(is_const && e->is_const && type == INT && e->type == INT)
+    if(canFold(e))
     {
-        cout << "const dividing " << const_val << "/" << e->const_val << endl;
-        const_val /= e->const_val;
+        cout << "const multiplying " << const_int << "*" << e->const_int << endl;
+        const_int *= e->const_int;
         delete e;
+    }
+    else if(type == SYM && e->type == SYM)
+    {
+        return new Expression(getInt() * e->getInt());
     }
     else
     {
-        cerr << "unimp div with non const" << endl;
+        cerr << "unimp mul with non const" << " line: " << yylineno << endl;
+        exit(1);
+    }
+
+    return this;
+}
+
+
+Expression* Expression::div(Expression* e)
+{
+    if(canFold(e))
+    {
+        cout << "const dividing " << const_int << "/" << e->const_int << endl;
+        const_int /= e->const_int;
+        delete e;
+    }
+    else if(type == SYM && e->type == SYM)
+    {
+        int t = e->getInt();
+        if(t == 0)
+        {
+            cerr << "error div by zero on line " << yylineno << endl;
+            exit(1);
+        }
+
+        return new Expression(getInt() / e->getInt());
+    }
+    else
+    {
+        cerr << "unimp div with non const" << " line: " << yylineno << endl;
         exit(1);
     }
 
@@ -101,17 +107,72 @@ Expression* Expression::div(Expression* e)
 
 Expression* Expression::mod(Expression* e)
 {
-    if(is_const && e->is_const && type == INT && e->type == INT)
+    if(canFold(e))
     {
-        cout << "const mod'ing " << const_val << "%" << e->const_val << endl;
-        const_val = const_val % e->const_val;
+        cout << "const mod'ing " << const_int << "%" << e->const_int << endl;
+        const_int = const_int % e->const_int;
         delete e;
+    }
+    else if(type == SYM && e->type == SYM)
+    {
+        return new Expression(getInt() % e->getInt());
     }
     else
     {
-        cerr << "unimp mod with non const" << endl;
+        cerr << "unimp mod with non const" << " line: " << yylineno << endl;
         exit(1);
     }
 
     return this;
+}
+
+bool Expression::canFold(Expression* e)
+{
+    if(type != e->type)
+    {
+        cerr << "type mismatch " << toString() << " " << e->toString() << " line: " << yylineno << endl;
+    }
+    return type == INT && e->type == INT;
+}
+
+string Expression::typeName()
+{
+    switch(type)
+    {
+        case INT:
+            return "integer";
+            break;
+        case STR:
+            return "string";
+            break;
+        case SYM:
+            return "symbol";
+            break;
+    }
+}
+
+string Expression::toString()
+{
+    string o;
+
+    if(type != SYM)
+        o = "const ";
+
+    o += typeName();
+
+    if(symbol)
+        o += " " + symbol->name;
+
+    return o;
+}
+
+int Expression::getInt()
+{
+    if(type == SYM && !symbol)
+    {
+        cerr << "getInt() missing symbol on expression " << " line: " << yylineno << endl;
+        exit(1);
+    }
+
+    return type == INT ? const_int : symbol->value;
 }
