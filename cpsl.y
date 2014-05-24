@@ -5,9 +5,10 @@
 #include <stdio.h>
 #include <string>
 #include <list>
+#include <iostream>
 
-std::string *expression(int);
-std::string *expression(std::string*);
+#include "SymbolTable.h"
+
 int bison_verbose = 0;
 int yyerror(char* s);
 extern "C" int yylex();
@@ -16,7 +17,9 @@ extern "C" int yylex();
 %union{
   int   int_val;
   std::string *str_val;
-  std::list<std::string> *var_list;
+  SymbolTable *tableptr;
+  Expression *exprptr;
+  Symbol *symptr;
 }
 
 /*%start  inputs*/
@@ -37,8 +40,8 @@ extern "C" int yylex();
 %token <str_val> STROSYM
 %token <str_val> IDENTSYM
 
-%type <str_val> expression
-%type <var_list> identList
+%type <exprptr> expression
+%type <symptr> lValue;
 
 %nonassoc ARRAYSYM ELSESYM IFSYM RECORDSYM TOSYM BEGINSYM ELSEIFSYM OFSYM REPEATSYM TYPESYM CHRSYM ENDSYM
 %nonassoc ORDSYM RETURNSYM UNTILSYM CONSTSYM FORSYM PREDSYM STOPSYM VARSYM DOSYM FORWARDSYM PROCEDURESYM
@@ -81,7 +84,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars(0); }
             ;
 pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
@@ -124,7 +127,7 @@ statement: assignment
          ;
 assignment: lValue ASSIGNOSYM expression
           ;
-lValue: IDENTSYM lValueHelper
+lValue: IDENTSYM lValueHelper { SymbolTable::instance()->findSymbol($1); }
       ;
 lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM
@@ -185,42 +188,43 @@ recordDecls: /*empty*/
            ;
 recordDecl: identList COLONOSYM type SEMIOSYM
           ;
-identList: IDENTSYM commaIdentifiers { if(bison_verbose) printf("id '%s'\n", $1->c_str()); }
+identList: IDENTSYM { SymbolTable::instance()->add_var($1); if(bison_verbose) printf("id '%s'\n", $1->c_str()); }
+         | IDENTSYM commaIdentifiers { SymbolTable::instance()->add_var($1); }
          ;
-commaIdentifiers: /*empty*/
-                | commaIdentifiers commaIdentifier
+commaIdentifiers: commaIdentifiers commaIdentifier
+                | commaIdentifier
                 ;
-commaIdentifier: COMMAOSYM IDENTSYM { $$ = addToList($1); if(bison_verbose) printf("nested comma id '%s'\n", $2->c_str()); }
+commaIdentifier: COMMAOSYM IDENTSYM { SymbolTable::instance()->add_var($2); if(bison_verbose) printf("nested comma id '%s'\n", $2->c_str()); }
                ;
 arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type
          ;
-expression: INTOSYM { $$ = expression($1); }
-          | CHAROSYM { $$ = expression($1); }
-          | STROSYM { $$ = expression($1); }
+expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
+          | CHAROSYM { $$ = SymbolTable::instance()->expression_string($1); }
+          | STROSYM { $$ = SymbolTable::instance()->expression_string($1); }
           /*| IDENTSYM covered by lValue*/
-          | expression BAROSYM expression { $$ = new std::string("<err>"); }
-          | expression AMPOSYM expression { $$ = new std::string("<err>"); }
-          | expression EQOSYM expression { $$ = new std::string("<err>"); }
-          | expression NEOSYM expression { $$ = new std::string("<err>"); }
-          | expression LTEOSYM expression { $$ = new std::string("<err>"); }
-          | expression GTEOSYM expression { $$ = new std::string("<err>"); }
-          | expression LTOSYM expression { $$ = new std::string("<err>"); }
-          | expression GTOSYM expression { $$ = new std::string("<err>"); }
-          | expression PLUSOSYM expression { $$ = new std::string("<err>"); }
-          | expression MINUSOSYM expression { $$ = new std::string("<err>"); }
-          | expression STAROSYM expression { $$ = new std::string("<err>"); }
-          | expression FSLASHOSYM expression { $$ = new std::string("<err>"); }
-          | expression PERCENTOSYM expression { $$ = new std::string("<err>"); }
-          | TILDEOSYM expression { $$ = new std::string("<err>"); }
-          | MINUSOSYM expression %prec UMINUSOSYM { $$ = new std::string("<err>"); }
-          | LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
-          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = new std::string("<err>"); }
-          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = new std::string("<err>"); }
-          | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
-          | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
-          | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
-          | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
-          | lValue { $$ = new std::string("<err>"); }
+          | expression BAROSYM expression { $$ = $1->unimp($3); }
+          | expression AMPOSYM expression { $$ = $1->unimp($3); }
+          | expression EQOSYM expression { $$ = $1->unimp($3); }
+          | expression NEOSYM expression { $$ = $1->unimp($3); }
+          | expression LTEOSYM expression { $$ = $1->unimp($3); }
+          | expression GTEOSYM expression { $$ = $1->unimp($3); }
+          | expression LTOSYM expression { $$ = $1->unimp($3); }
+          | expression GTOSYM expression { $$ = $1->unimp($3); }
+          | expression PLUSOSYM expression { $$ = $1->plus($3); }
+          | expression MINUSOSYM expression { $$ = $1->sub($3); }
+          | expression STAROSYM expression { $$ = $1->mul($3); }
+          | expression FSLASHOSYM expression { $$ = $1->div($3); }
+          | expression PERCENTOSYM expression { $$ = $1->mod($3); }
+          | TILDEOSYM expression { $$ = $2->unimp($2); }
+          | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->unimp($2); }
+          | LPARENOSYM expression RPARENOSYM { $$ = $2; }
+          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->expression($1); }
+          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->expression($1); }
+          | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | lValue { SymbolTable::instance()->lValue($1); }
           ;
 expressionList: expression
           | expressionList COMMAOSYM expression

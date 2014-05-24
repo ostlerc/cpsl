@@ -5,6 +5,7 @@
 #include <string>
 #include <stdio.h>
 
+#include "SymbolTable.h"
 #include "cpsl.hpp"
 extern "C" int yylex();
 %}

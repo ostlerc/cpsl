@@ -9,19 +9,6 @@ using namespace std;
 // prototype of bison-generated parser function
 extern int yyparse();
 
-string* expression (int i)
-{
-    string *a = new string("abc");
-    cout << "int!" << i << endl;
-    return a;
-}
-
-string * expression(string* c)
-{
-    cout << "char*!" << c->c_str() << endl;
-    return c;
-}
-
 int main(int argc, char **argv)
 {
     if ((argc > 1) && (freopen(argv[1], "r", stdin) == NULL))
