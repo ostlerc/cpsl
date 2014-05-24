@@ -2,7 +2,11 @@
     char* t = 0; //used for strtol end pointer
 
 %{
-#include "cpsl.h"
+#include <string>
+#include <stdio.h>
+
+#include "cpsl.hpp"
+extern "C" int yylex();
 %}
 
 %%
@@ -38,7 +42,7 @@
 (read|READ) { if(verbose) printf("keyword(%s)\n", yytext); return READSYM; }
 (then|THEN) { if(verbose) printf("keyword(%s)\n", yytext); return THENSYM; }
 (write|WRITE) { if(verbose) printf("keyword(%s)\n", yytext); return WRITESYM; }
-[[:alpha:]][[:alnum:]_]* { yylval.str = strdup(yytext); if(verbose) printf("identifier(%s)\n", yytext); return IDENTSYM; }
+[[:alpha:]][[:alnum:]_]* { yylval.str_val = new std::string(yytext); if(verbose) printf("identifier(%s)\n", yytext); return IDENTSYM; }
 \+ { if(verbose) printf("operator_delimiter(%s)\n", yytext); return PLUSOSYM; }
 \<\> { if(verbose) printf("operator_delimiter(%s)\n", yytext); return NEOSYM; }
 ; { if(verbose) printf("operator_delimiter(%s)\n", yytext); return SEMIOSYM; }
@@ -65,8 +69,8 @@
 0x[[:digit:]a-fA-F]+ { yylval.int_val = strtol(yytext, &t, 16); if(verbose) printf("hex(%s)\n", yytext); return INTOSYM; }
 0[^x][0-7]+ { yylval.int_val = strtol(yytext, &t, 8); if(verbose) printf("octal(%s)\n", yytext); return INTOSYM; }
 [[:digit:]]+ { yylval.int_val = atoi(yytext); if(verbose) printf("integer(%s)\n", yytext); return INTOSYM; }
-'(\\[nrbtf]|[[:alpha:] ])' { if(verbose) printf("character(%s)\n", yytext); return CHAROSYM; }
-\"[^\"\n]*\" { if(verbose) printf("string(%s)\n", yytext); return STROSYM; }
+'(\\[nrbtf]|.)' { yylval.str_val = new std::string(yytext); if(verbose) printf("character(%s)\n", yytext); return CHAROSYM; }
+\"[^\"\n]*\" { yylval.str_val = new std::string(yytext); if(verbose) printf("string(%s)\n", yytext); return STROSYM; }
 \$.*$ { if(verbose) printf("comment(%s)\n", yytext); }
 . { fprintf(stderr, "Incorrect syntax on line %d '%s'\n", yylineno, yytext); REJECT; }
 %%

@@ -4,14 +4,14 @@ project(cpsl)
 find_package(BISON)
 find_package(FLEX)
 
-BISON_TARGET(CpslParser cpsl.y ${CMAKE_CURRENT_BINARY_DIR}/cpsl.c)
-FLEX_TARGET(CpslScanner cpsl.lex ${CMAKE_CURRENT_BINARY_DIR}/lex.c)
+BISON_TARGET(CpslParser cpsl.y ${CMAKE_CURRENT_BINARY_DIR}/cpsl.cpp)
+FLEX_TARGET(CpslScanner cpsl.lex ${CMAKE_CURRENT_BINARY_DIR}/lex.cpp)
 ADD_FLEX_BISON_DEPENDENCY(CpslScanner CpslParser)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(cpsl_srcs
-  main.c
+  main.cpp
   ${BISON_CpslParser_OUTPUTS}
   ${FLEX_CpslScanner_OUTPUTS}
 

@@ -3,14 +3,20 @@
 
 %{
 #include <stdio.h>
+#include <string>
+#include <list>
 
+std::string *expression(int);
+std::string *expression(std::string*);
 int bison_verbose = 0;
+int yyerror(char* s);
+extern "C" int yylex();
 %}
 
 %union{
   int   int_val;
-  char char_val;
-  char* str;
+  std::string *str_val;
+  std::list<std::string> *var_list;
 }
 
 /*%start  inputs*/
@@ -26,16 +32,13 @@ int bison_verbose = 0;
 %token GTOSYM LBRACKETOSYM AMPOSYM GTEOSYM RBRACKETOSYM BAROSYM DOTOSYM ASSIGNOSYM TILDEOSYM COMMAOSYM
 %token PERCENTOSYM EQOSYM COLONOSYM
 
-/* int */
 %token <int_val> INTOSYM
-%token <str> IDENTSYM
+%token <str_val> CHAROSYM
+%token <str_val> STROSYM
+%token <str_val> IDENTSYM
 
-/* char */
-%token CHAROSYM
-
-/* str */
-%token STROSYM
-
+%type <str_val> expression
+%type <var_list> identList
 
 %nonassoc ARRAYSYM ELSESYM IFSYM RECORDSYM TOSYM BEGINSYM ELSEIFSYM OFSYM REPEATSYM TYPESYM CHRSYM ENDSYM
 %nonassoc ORDSYM RETURNSYM UNTILSYM CONSTSYM FORSYM PREDSYM STOPSYM VARSYM DOSYM FORWARDSYM PROCEDURESYM
@@ -53,11 +56,12 @@ int bison_verbose = 0;
 %left LTOSYM
 %left GTOSYM
 %left PLUSOSYM
+%left MINUSOSYM
 %left STAROSYM
 %left FSLASHOSYM
 %left PERCENTOSYM
 %right TILDEOSYM
-%right MINUSOSYM
+%right UMINUSOSYM
 %nonassoc LPARENOSYM
 %nonassoc RPARENOSYM
 
@@ -65,8 +69,6 @@ int bison_verbose = 0;
 
 program: constDecl typeDecl varDecl pOrFDecls block DOTOSYM { printf("finished!\n"); }
        ;
-block: /*TODO*/
-     ;
 constDecl: /*empty*/
          | CONSTSYM assignStatements
          ;
@@ -87,7 +89,6 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-
 procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM FORWARDSYM SEMIOSYM
              | PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM body SEMIOSYM
              ;
@@ -164,12 +165,12 @@ nullStatement: /* empty */
 assignStatements: assignStatement
                 | assignStatements assignStatement
                 ;
-assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { if(bison_verbose) printf("assigned '%s'\n", $1); }
+assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
                ;
 typeStatements: typeStatement
               | typeStatements typeStatement
               ;
-typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) printf("type defined '%s'\n", $1); }
+typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) printf("type defined '%s'\n", $1->c_str()); }
              ;
 type: simpleType
     | recordType
@@ -184,43 +185,42 @@ recordDecls: /*empty*/
            ;
 recordDecl: identList COLONOSYM type SEMIOSYM
           ;
-identList: IDENTSYM commaIdentifiers { if(bison_verbose) printf("id '%s'\n", $1); }
+identList: IDENTSYM commaIdentifiers { if(bison_verbose) printf("id '%s'\n", $1->c_str()); }
          ;
 commaIdentifiers: /*empty*/
                 | commaIdentifiers commaIdentifier
                 ;
-commaIdentifier: COMMAOSYM IDENTSYM { if(bison_verbose) printf("nested comma id '%s'\n", $2); }
+commaIdentifier: COMMAOSYM IDENTSYM { $$ = addToList($1); if(bison_verbose) printf("nested comma id '%s'\n", $2->c_str()); }
                ;
-
 arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type
          ;
-expression: INTOSYM
-          | CHAROSYM
-          | STROSYM
+expression: INTOSYM { $$ = expression($1); }
+          | CHAROSYM { $$ = expression($1); }
+          | STROSYM { $$ = expression($1); }
           /*| IDENTSYM covered by lValue*/
-          | expression BAROSYM expression
-          | expression AMPOSYM expression
-          | expression EQOSYM expression
-          | expression NEOSYM expression
-          | expression LTEOSYM expression
-          | expression GTEOSYM expression
-          | expression LTOSYM expression
-          | expression GTOSYM expression
-          | expression PLUSOSYM expression
-          | expression MINUSOSYM expression
-          | expression STAROSYM expression
-          | expression FSLASHOSYM expression
-          | expression PERCENTOSYM expression
-          | TILDEOSYM expression
-          | MINUSOSYM expression
-          | LPARENOSYM expression RPARENOSYM
-          | IDENTSYM LPARENOSYM RPARENOSYM
-          | IDENTSYM LPARENOSYM expressionList RPARENOSYM
-          | CHRSYM LPARENOSYM expression RPARENOSYM
-          | ORDSYM LPARENOSYM expression RPARENOSYM
-          | PREDSYM LPARENOSYM expression RPARENOSYM
-          | SUCCSYM LPARENOSYM expression RPARENOSYM
-          | lValue
+          | expression BAROSYM expression { $$ = new std::string("<err>"); }
+          | expression AMPOSYM expression { $$ = new std::string("<err>"); }
+          | expression EQOSYM expression { $$ = new std::string("<err>"); }
+          | expression NEOSYM expression { $$ = new std::string("<err>"); }
+          | expression LTEOSYM expression { $$ = new std::string("<err>"); }
+          | expression GTEOSYM expression { $$ = new std::string("<err>"); }
+          | expression LTOSYM expression { $$ = new std::string("<err>"); }
+          | expression GTOSYM expression { $$ = new std::string("<err>"); }
+          | expression PLUSOSYM expression { $$ = new std::string("<err>"); }
+          | expression MINUSOSYM expression { $$ = new std::string("<err>"); }
+          | expression STAROSYM expression { $$ = new std::string("<err>"); }
+          | expression FSLASHOSYM expression { $$ = new std::string("<err>"); }
+          | expression PERCENTOSYM expression { $$ = new std::string("<err>"); }
+          | TILDEOSYM expression { $$ = new std::string("<err>"); }
+          | MINUSOSYM expression %prec UMINUSOSYM { $$ = new std::string("<err>"); }
+          | LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
+          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = new std::string("<err>"); }
+          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = new std::string("<err>"); }
+          | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
+          | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
+          | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
+          | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = new std::string("<err>"); }
+          | lValue { $$ = new std::string("<err>"); }
           ;
 expressionList: expression
           | expressionList COMMAOSYM expression
@@ -229,8 +229,8 @@ expressionList: expression
 
 int yyerror(char* s)
 {
-  extern char *yytext;// defined and maintained in lex.c
-  extern int yylineno;// defined and maintained in lex.c
+  extern char *yytext;// defined and maintained in lex.cpp
+  extern int yylineno;// defined and maintained in lex.cpp
   printf("ERROR! %s %s line: %d\n", s, yytext, yylineno);
   return 0;
 }
