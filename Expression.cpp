@@ -59,6 +59,18 @@ string Expression::toString(Operation op)
               return "divide";
         case Mod:
               return "mod";
+        case Eq:
+              return "equal";
+        case Ne:
+              return "not equal";
+        case Lt:
+              return "less than";
+        case Gt:
+              return "greater than";
+        case Lte:
+              return "less than equal";
+        case Gte:
+              return "greater than equal";
         default:
               cerr << "Unknown op " << op << " in function " << __FUNCTION__ << " line: " << yylineno << endl;
               exit(1);
@@ -89,6 +101,24 @@ Expression* Expression::exec(Expression* e, Operation op)
             case Mod:
                 const_int = const_int % e->const_int;
                 break;
+            case Eq:
+                const_int = const_int == e->const_int;
+                break;
+            case Ne:
+                const_int = const_int != e->const_int;
+                break;
+            case Lt:
+                const_int = const_int < e->const_int;
+                break;
+            case Gt:
+                const_int = const_int > e->const_int;
+                break;
+            case Lte:
+                const_int = const_int <= e->const_int;
+                break;
+            case Gte:
+                const_int = const_int >= e->const_int;
+                break;
         }
         delete e;
     }
@@ -104,7 +134,25 @@ Expression* Expression::exec(Expression* e, Operation op)
         }
         else
         {
-            rhs = to_string(e->const_int);
+            switch(op)
+            {
+                case Add:
+                case Sub:
+                case Mul:
+                case Div:
+                case Mod:
+                    rhs = to_string(e->const_int);
+                    break;
+                case Eq:
+                case Ne:
+                case Lt:
+                case Gt:
+                case Lte:
+                case Gte:
+                    e->loadInTemp();
+                    rhs = e->reg->name();
+                    break;
+            }
         }
 
         switch(op)
@@ -124,6 +172,26 @@ Expression* Expression::exec(Expression* e, Operation op)
             case Mod:
                 cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
                 cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
+                break;
+
+            //rhs must be reg for conditionals
+            case Eq:
+                cout << "\tseq " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Ne:
+                cout << "\tsne " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Lt:
+                cout << "\tslt " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Gt:
+                cout << "\tsgt " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Lte:
+                cout << "\tsle " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Gte:
+                cout << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
                 break;
         }
 

@@ -7,8 +7,8 @@
 class Expression
 {
     public:
-        //TODO: remove types from expression and put them in symbol
-        //const integers
+        //TODO: remove const types from expression and put them in symbol, also add more types in symbol
+        //const integer
         Expression(int v)
             : type(INT)
             , const_int(v)
@@ -16,6 +16,7 @@ class Expression
             , reg(NULL)
         {}
 
+        //const string
         Expression(Symbol *s)
             : type(SYM)
             , const_int(1)
@@ -54,6 +55,12 @@ class Expression
             Mul,
             Div,
             Mod,
+            Eq,
+            Ne,
+            Lt,
+            Gt,
+            Lte,
+            Gte
         };
 
         Expression* exec(Expression* e, Operation op);
