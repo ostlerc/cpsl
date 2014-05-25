@@ -52,6 +52,8 @@ class Expression
         void print(); //print expression result to prompt
         void store(); //write out const string data to .data section
 
+        void loadInTemp();
+
     private:
         enum ExpressionType
         {

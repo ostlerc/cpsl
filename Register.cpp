@@ -117,3 +117,22 @@ string Register::name()
     n += to_string(reg_num);
     return n;
 }
+
+int Register::reservedRegisters()
+{
+    int ret = 0;
+    for(unsigned int i = 0; i < save_registers.size(); i++)
+    {
+        if(save_registers[i]->allocated)
+            ret++;
+
+        if(temp_registers[i]->allocated)
+        {
+            if(bison_verbose)
+                cerr << "temp register " << i << " not released" << endl;
+            ret++;
+        }
+    }
+
+    return ret;
+}

@@ -13,6 +13,7 @@ class Register
             Save
         };
 
+        static int reservedRegisters();
         static Register* FindRegister(RegisterType type);
         static void ReleaseRegister(Register* reg);
 

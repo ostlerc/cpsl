@@ -149,7 +149,18 @@ void SymbolTable::print()
     for(unsigned int i = 0; i < expr_list.size(); i++)
         expr_list[i]->print();
 
+    checkRegisters();
+
     expr_list.clear();
+}
+
+void SymbolTable::checkRegisters()
+{
+    if(Register::reservedRegisters() > 0)
+    {
+        cerr << "failed to release all registers!" << endl;
+        exit(1);
+    }
 }
 
 void SymbolTable::add_to_lval_list(Symbol* s)

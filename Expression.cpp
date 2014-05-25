@@ -24,17 +24,8 @@ Expression* Expression::plus(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        if(!reg)
-        {
-            reg = Register::FindRegister(Register::Temp);
-            cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
-        }
-
-        if(!e->reg)
-        {
-            e->reg = Register::FindRegister(Register::Temp);
-            cout << "\tlw " << e->reg->name() << ", " << e->symbol->offset << "($gp)" << endl;
-        }
+        loadInTemp();
+        e->loadInTemp();
 
         if(bison_verbose)
             cout << "adding two symbols" << endl;
@@ -42,10 +33,12 @@ Expression* Expression::plus(Expression* e)
         cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
 
         Register::ReleaseRegister(e->reg);
-        Register *r = reg;
-        reg = NULL;
+        e->reg = NULL;
 
-        return new Expression(r);
+        Expression *e = new Expression(reg);
+        reg = NULL; //hand off register to new expression
+
+        return e;
     }
     else
     {
@@ -210,7 +203,7 @@ string Expression::toString()
 
 int Expression::getInt()
 {
-    if(type == SYM && !symbol)
+    if(type == SYM)
     {
         cerr << "getInt() missing symbol on expression " << " line: " << yylineno << endl;
         exit(1);
@@ -282,4 +275,13 @@ void Expression::store()
     }
 
     cout << symbol->name << ":\t.asciiz" << symbol->str_value << endl;
+}
+
+void Expression::loadInTemp()
+{
+    if(reg)//already done!
+        return;
+
+    reg = Register::FindRegister(Register::Temp);
+    cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
 }

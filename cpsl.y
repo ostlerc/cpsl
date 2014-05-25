@@ -156,7 +156,7 @@ stopStatement: STOPSYM
 returnStatement: RETURNSYM expression
                | RETURNSYM
                ;
-readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); }
+readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); SymbolTable::instance()->checkRegisters(); }
              ;
 writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print(); }
               ;
