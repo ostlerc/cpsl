@@ -41,9 +41,9 @@ class Expression
         virtual ~Expression() {}
 
         Expression* unimp(Expression* e);
-        Expression* plus(Expression* e);
-        Expression* mul(Expression* e);
+        Expression* add(Expression* e);
         Expression* sub(Expression* e);
+        Expression* mul(Expression* e);
         Expression* div(Expression* e);
         Expression* mod(Expression* e);
 
@@ -53,6 +53,7 @@ class Expression
         void store(); //write out const string data to .data section
 
         void loadInTemp();
+        void free(); //release temporary register
 
     private:
         enum ExpressionType

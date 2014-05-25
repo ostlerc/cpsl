@@ -13,7 +13,7 @@ Expression* Expression::unimp(Expression* e)
     exit(1);
 }
 
-Expression* Expression::plus(Expression* e)
+Expression* Expression::add(Expression* e)
 {
     if(canFold(e))
     {
@@ -27,13 +27,9 @@ Expression* Expression::plus(Expression* e)
         loadInTemp();
         e->loadInTemp();
 
-        if(bison_verbose)
-            cout << "adding two symbols" << endl;
-
         cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
 
-        Register::ReleaseRegister(e->reg);
-        e->reg = NULL;
+        e->free();
 
         Expression *e = new Expression(reg);
         reg = NULL; //hand off register to new expression
@@ -62,7 +58,17 @@ Expression* Expression::sub(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        return new Expression(getInt() - e->getInt());
+        loadInTemp();
+        e->loadInTemp();
+
+        cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+
+        e->free();
+
+        Expression *e = new Expression(reg);
+        reg = NULL; //hand off register to new expression
+
+        return e;
     }
     else
     {
@@ -84,7 +90,17 @@ Expression* Expression::mul(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        return new Expression(getInt() * e->getInt());
+        loadInTemp();
+        e->loadInTemp();
+
+        cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+
+        e->free();
+
+        Expression *e = new Expression(reg);
+        reg = NULL; //hand off register to new expression
+
+        return e;
     }
     else
     {
@@ -107,14 +123,17 @@ Expression* Expression::div(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        int t = e->getInt();
-        if(t == 0)
-        {
-            cerr << "error div by zero on line " << yylineno << endl;
-            exit(1);
-        }
+        loadInTemp();
+        e->loadInTemp();
 
-        return new Expression(getInt() / e->getInt());
+        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+
+        e->free();
+
+        Expression *e = new Expression(reg);
+        reg = NULL; //hand off register to new expression
+
+        return e;
     }
     else
     {
@@ -136,7 +155,18 @@ Expression* Expression::mod(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        return new Expression(getInt() % e->getInt());
+        loadInTemp();
+        e->loadInTemp();
+
+        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+        cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
+
+        e->free();
+
+        Expression *e = new Expression(reg);
+        reg = NULL; //hand off register to new expression
+
+        return e;
     }
     else
     {
@@ -237,8 +267,7 @@ void Expression::print()
                 if(reg)
                 {
                     cout << "\tadd $a0, " << reg->name() << ", 0" << endl;
-                    Register::ReleaseRegister(reg);
-                    reg = NULL;
+                    free();
                 }
                 else if(symbol)
                 {
@@ -284,4 +313,13 @@ void Expression::loadInTemp()
 
     reg = Register::FindRegister(Register::Temp);
     cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
+}
+
+void Expression::free()
+{
+    if(reg)
+    {
+        Register::ReleaseRegister(reg);
+        reg = NULL;
+    }
 }
