@@ -44,14 +44,10 @@ Expression* SymbolTable::expression (int i)
     return new Expression(i);
 }
 
-Expression* SymbolTable::expression(string* s)
+Expression* SymbolTable::unimp()
 {
-    if(bison_verbose)
-        cout << "expression(string) '" << *s << "'" << endl;
-    Symbol *sym = findSymbol(s);
-
-    Expression *e = new Expression(sym);
-    return e;
+    cerr << "Unimplemented function " << __FUNCTION__ << " line: " << yylineno << endl;
+    exit(1);
 }
 
 Expression* SymbolTable::lValue(Symbol* s)
@@ -200,6 +196,6 @@ void SymbolTable::end()
     if(bison_verbose)
         cout << "there are " << str_expr_list.size() << " constant string entries to add" << endl;
 
-    for(int i = 0; i < str_expr_list.size(); i++)
+    for(unsigned int i = 0; i < str_expr_list.size(); i++)
         str_expr_list[i]->store();
 }

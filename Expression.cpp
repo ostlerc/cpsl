@@ -22,7 +22,7 @@ Expression* Expression::add(Expression* e)
         const_int += e->const_int;
         delete e;
     }
-    else if(type == SYM && e->type == SYM)
+    else if(type == SYM || e->type == SYM)
     {
         loadInTemp();
         e->loadInTemp();
@@ -45,57 +45,90 @@ Expression* Expression::add(Expression* e)
     return this;
 }
 
-Expression* Expression::sub(Expression* e)
+string Expression::toString(Operation op)
 {
-    if(bison_verbose)
-        cout << "sub " << toString() << " " << e->toString() << endl;
-    if(canFold(e))
+    switch(op)
     {
-        if(bison_verbose)
-            cout << "const subtracting " << const_int << "-" << e->const_int << endl;
-        const_int -= e->const_int;
-        delete e;
+        case Add:
+              return "add";
+        case Sub:
+              return "subtract";
+        case Mul:
+              return "multiply";
+        case Div:
+              return "divide";
+        case Mod:
+              return "mod";
+        default:
+              cerr << "Unknown op " << op << " in function " << __FUNCTION__ << " line: " << yylineno << endl;
+              exit(1);
     }
-    else if(type == SYM && e->type == SYM)
-    {
-        loadInTemp();
-        e->loadInTemp();
-
-        cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
-
-        e->free();
-
-        Expression *e = new Expression(reg);
-        reg = NULL; //hand off register to new expression
-
-        return e;
-    }
-    else
-    {
-        cerr << "unimp sub with non const" << " line: " << yylineno << endl;
-        exit(1);
-    }
-
-    return this;
 }
 
-Expression* Expression::mul(Expression* e)
+Expression* Expression::exec(Expression* e, Operation op)
 {
     if(canFold(e))
     {
         if(bison_verbose)
-            cout << "const multiplying " << const_int << "*" << e->const_int << endl;
-        const_int *= e->const_int;
+            cout << "const " << toString(op) << " folding " << const_int << ", " << e->const_int << endl;
+
+        switch(op)
+        {
+            case Add:
+                const_int += e->const_int;
+                break;
+            case Sub:
+                const_int -= e->const_int;
+                break;
+            case Mul:
+                const_int *= e->const_int;
+                break;
+            case Div:
+                const_int /= e->const_int;
+                break;
+            case Mod:
+                const_int = const_int % e->const_int;
+                break;
+        }
         delete e;
     }
-    else if(type == SYM && e->type == SYM)
+    else if(type == SYM || e->type == SYM)
     {
         loadInTemp();
-        e->loadInTemp();
 
-        cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+        string rhs;
+        if(e->type == SYM)
+        {
+            e->loadInTemp();
+            rhs = e->reg->name();
+        }
+        else
+        {
+            rhs = to_string(e->const_int);
+        }
 
-        e->free();
+        switch(op)
+        {
+            case Add:
+                cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Sub:
+                cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Mul:
+                cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Div:
+                cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                break;
+            case Mod:
+                cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
+                break;
+        }
+
+        if(e->reg)
+            e->free();
 
         Expression *e = new Expression(reg);
         reg = NULL; //hand off register to new expression
@@ -104,73 +137,7 @@ Expression* Expression::mul(Expression* e)
     }
     else
     {
-        cerr << "unimp mul with non const" << " line: " << yylineno << endl;
-        exit(1);
-    }
-
-    return this;
-}
-
-
-Expression* Expression::div(Expression* e)
-{
-    if(canFold(e))
-    {
-        if(bison_verbose)
-            cout << "const dividing " << const_int << "/" << e->const_int << endl;
-        const_int /= e->const_int;
-        delete e;
-    }
-    else if(type == SYM && e->type == SYM)
-    {
-        loadInTemp();
-        e->loadInTemp();
-
-        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
-
-        e->free();
-
-        Expression *e = new Expression(reg);
-        reg = NULL; //hand off register to new expression
-
-        return e;
-    }
-    else
-    {
-        cerr << "unimp div with non const" << " line: " << yylineno << endl;
-        exit(1);
-    }
-
-    return this;
-}
-
-Expression* Expression::mod(Expression* e)
-{
-    if(canFold(e))
-    {
-        if(bison_verbose)
-            cout << "const mod'ing " << const_int << "%" << e->const_int << endl;
-        const_int = const_int % e->const_int;
-        delete e;
-    }
-    else if(type == SYM && e->type == SYM)
-    {
-        loadInTemp();
-        e->loadInTemp();
-
-        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
-        cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
-
-        e->free();
-
-        Expression *e = new Expression(reg);
-        reg = NULL; //hand off register to new expression
-
-        return e;
-    }
-    else
-    {
-        cerr << "unimp mod with non const" << " line: " << yylineno << endl;
+        cerr << "Unimplemented or incorret add type " << type << " " << e->type << " line: " << yylineno << endl;
         exit(1);
     }
 
@@ -179,10 +146,6 @@ Expression* Expression::mod(Expression* e)
 
 bool Expression::canFold(Expression* e)
 {
-    if(type != e->type)
-    {
-        cerr << "type mismatch " << toString() << " " << e->toString() << " line: " << yylineno << endl;
-    }
     return type == INT && e->type == INT;
 }
 
@@ -312,7 +275,20 @@ void Expression::loadInTemp()
         return;
 
     reg = Register::FindRegister(Register::Temp);
-    cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
+
+    if(type == SYM)
+    {
+        cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
+    }
+    else if(type == INT)
+    {
+        cout << "\tli " << reg->name() << ", " << const_int << endl;
+    }
+    else
+    {
+        cerr << "Attempting to load string constant into register invalid or unimplemented on line: " << yylineno << endl;
+        exit(1);
+    }
 }
 
 void Expression::free()

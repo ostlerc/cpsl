@@ -72,7 +72,9 @@ Register* Register::FindRegister(RegisterType type)
             cerr << "Unknown register type " << type << " line: " << yylineno << endl;
             exit(1);
     }
-    return NULL;
+
+    cerr << "Could not allocate register on line: " << yylineno << endl;
+    exit(1);
 }
 
 void Register::ReleaseRegister(Register* reg)

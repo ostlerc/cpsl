@@ -47,6 +47,17 @@ class Expression
         Expression* div(Expression* e);
         Expression* mod(Expression* e);
 
+        enum Operation
+        {
+            Add,
+            Sub,
+            Mul,
+            Div,
+            Mod,
+        };
+
+        Expression* exec(Expression* e, Operation op);
+
         std::string toString();
 
         void print(); //print expression result to prompt
@@ -62,6 +73,8 @@ class Expression
             STR,
             SYM
         };
+
+        std::string toString(Operation op);
 
         int getInt();
         bool canFold(Expression* e);

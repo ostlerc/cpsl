@@ -31,6 +31,7 @@ class SymbolTable
         void begin();
         void end();
         void checkRegisters();
+        Expression* unimp();
 
     private:
         std::vector<Expression*> expr_list;
