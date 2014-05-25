@@ -20,8 +20,8 @@ int main(int argc, char **argv)
     cout << "\t.text" << endl;
     cout << "\t.globl main" << endl;
     cout << "\t.globl dat" << endl;
-    cout << "\tla $gp main" << endl;
-    cout << "\tla $fp dat" << endl;
+    cout << "\tla $gp dat" << endl;
+    cout << "\tla $fp main" << endl;
     cout << "\tj main" << endl;
     cout << "\t.data" << endl;
     cout << "dat:" << endl;

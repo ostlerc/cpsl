@@ -24,7 +24,28 @@ Expression* Expression::plus(Expression* e)
     }
     else if(type == SYM && e->type == SYM)
     {
-        return new Expression(getInt() * e->getInt());
+        if(!reg)
+        {
+            reg = Register::FindRegister(Register::Temp);
+            cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
+        }
+
+        if(!e->reg)
+        {
+            e->reg = Register::FindRegister(Register::Temp);
+            cout << "\tlw " << e->reg->name() << ", " << e->symbol->offset << "($gp)" << endl;
+        }
+
+        if(bison_verbose)
+            cout << "adding two symbols" << endl;
+
+        cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << e->reg->name() << endl;
+
+        Register::ReleaseRegister(e->reg);
+        Register *r = reg;
+        reg = NULL;
+
+        return new Expression(r);
     }
     else
     {
@@ -174,10 +195,15 @@ string Expression::toString()
         case INT:
             o += " " + to_string(const_int);
             break;
+        default:
+            break;
     }
 
     if(symbol)
         o += " " + symbol->name + symbol->str_val();
+
+    if(reg)
+        o += " register " + reg->name();
 
     return o;
 }
@@ -193,7 +219,7 @@ int Expression::getInt()
     return type == INT ? const_int : symbol->value;
 }
 
-void Expression::write()
+void Expression::print()
 {
     if(bison_verbose)
         cout << "writing expression " << toString() << endl;
@@ -213,14 +239,25 @@ void Expression::write()
             }
             break;
         case SYM:
-            if(!reg)
-                reg = Register::FindRegister(Register::Temp);
-
-            cout << "\tli $v0 1" << endl;
-            cout << "\tla " << reg->name() << " dat" << endl;
-            cout << "\tlw $a0, " << symbol->offset << "(" << reg->name() << ")" << endl;
-            reg = NULL;
-            //cout << "\tlw " << reg->name() << ", " << "0"<< "($fp) #" << toString() << endl;
+            {
+                cout << "\tli $v0 1" << endl;
+                if(reg)
+                {
+                    cout << "\tadd $a0, " << reg->name() << ", 0" << endl;
+                    Register::ReleaseRegister(reg);
+                    reg = NULL;
+                }
+                else if(symbol)
+                {
+                    cout << "\tlw $a0, " << symbol->offset << "($gp)" << endl;
+                }
+                else
+                {
+                    cerr << "No symbol or register for expression " << toString() << " line: " << yylineno << endl;
+                    cout << symbol->name << endl;
+                    exit(1);
+                }
+            }
             break;
     }
 

@@ -158,7 +158,7 @@ returnStatement: RETURNSYM expression
                ;
 readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); }
              ;
-writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->write(); }
+writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print(); }
               ;
 procedureCall: IDENTSYM LPARENOSYM RPARENOSYM
              | IDENTSYM LPARENOSYM expressionList RPARENOSYM

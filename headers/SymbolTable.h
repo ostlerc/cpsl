@@ -27,7 +27,7 @@ class SymbolTable
         void add_to_lval_list(Symbol* s);
         void create_vars(int type);
         void read();
-        void write();
+        void print();
         void begin();
         void end();
 

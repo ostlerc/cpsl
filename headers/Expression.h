@@ -8,6 +8,7 @@ class Expression
 {
     public:
         //TODO: remove types from expression and put them in symbol
+        //const integers
         Expression(int v)
             : type(INT)
             , const_int(v)
@@ -22,6 +23,14 @@ class Expression
             , reg(NULL)
         {}
 
+        Expression(Register *reg)
+            : type(SYM)
+              , const_int(1)
+              , symbol(NULL)
+              , reg(reg)
+        {}
+
+        //const strings
         Expression(std::string &name)
             : type(STR)
             , const_int(1)
@@ -40,8 +49,8 @@ class Expression
 
         std::string toString();
 
-        void write();
-        void store();
+        void print(); //print expression result to prompt
+        void store(); //write out const string data to .data section
 
     private:
         enum ExpressionType

@@ -34,7 +34,7 @@ void Symbol::read()
     Register *reg = Register::FindRegister(Register::Temp);
 
     cout << "\tla " << reg->name() << " dat" << endl;
-    cout << "\tsw $v0, " << offset << "(" << reg->name() << ")" << endl;
+    cout << "\tsw $v0, " << offset << "($gp)" << endl;
 
     Register::ReleaseRegister(reg);
 }

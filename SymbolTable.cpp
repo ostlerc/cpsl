@@ -5,7 +5,7 @@
 
 using namespace std;
 
-extern int yylineno;// defined and maintained in lex.cpp
+extern int yylineno; // defined and maintained in lex.cpp
 extern bool bison_verbose;
 
 SymbolTable::SymbolTable()
@@ -138,7 +138,7 @@ void SymbolTable::add_to_expr_list(Expression* e)
     expr_list.push_back(e);
 }
 
-void SymbolTable::write()
+void SymbolTable::print()
 {
     if(expr_list.size() == 0)
     {
@@ -147,7 +147,7 @@ void SymbolTable::write()
     }
 
     for(unsigned int i = 0; i < expr_list.size(); i++)
-        expr_list[i]->write();
+        expr_list[i]->print();
 
     expr_list.clear();
 }
@@ -182,12 +182,13 @@ void SymbolTable::begin()
 
 void SymbolTable::end()
 {
+    cout << "\tli $v0, 10" << endl;
+    cout << "\tsyscall" << endl;
     cout << "\t.data" << endl;
+
     if(bison_verbose)
         cout << "there are " << str_expr_list.size() << " constant string entries to add" << endl;
 
     for(int i = 0; i < str_expr_list.size(); i++)
-    {
         str_expr_list[i]->store();
-    }
 }
