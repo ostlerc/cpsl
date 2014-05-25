@@ -10,6 +10,9 @@ const int sreg_size = 8;
 vector<Register*> Register::temp_registers;
 vector<Register*> Register::save_registers;
 
+extern int yylineno;// defined and maintained in lex.cpp
+extern bool bison_verbose;
+
 Register::Register(int reg_num, RegisterType type)
     : reg_num(reg_num)
     , allocated(false)
@@ -44,7 +47,8 @@ Register* Register::FindRegister(RegisterType type)
                     if(!temp_registers[i]->allocated)
                     {
                         temp_registers[i]->allocated = true;
-                        cout << "allocated temp register " << i << endl;
+                        if(bison_verbose)
+                            cout << "allocated temp register " << i << endl;
                         return temp_registers[i];
                     }
                 }
@@ -57,14 +61,15 @@ Register* Register::FindRegister(RegisterType type)
                     if(!save_registers[i]->allocated)
                     {
                         save_registers[i]->allocated = true;
-                        cout << "allocated save register " << i << endl;
+                        if(bison_verbose)
+                            cout << "allocated save register " << i << endl;
                         return save_registers[i];
                     }
                 }
             }
             break;
         default:
-            cerr << "Unknown register type " << type << endl;
+            cerr << "Unknown register type " << type << " line: " << yylineno << endl;
             exit(1);
     }
     return NULL;
@@ -73,32 +78,32 @@ Register* Register::FindRegister(RegisterType type)
 void Register::ReleaseRegister(Register* reg)
 {
     Register *r = NULL;
-    if(!reg) { cerr << "attempt to release NULL register"; exit(1); }
+    if(!reg) { cerr << "attempt to release NULL register line: " << yylineno << endl; exit(1); }
 
     switch(reg->type)
     {
         case Temp:
             {
-                if(reg->reg_num < 0 || reg->reg_num > treg_size) { cerr << "attempt to access invalid index " << reg->reg_num; exit(1); }
+                if(reg->reg_num < 0 || reg->reg_num > treg_size) { cerr << "attempt to access invalid index " << reg->reg_num << " line: " << yylineno << endl; exit(1); }
                 r = temp_registers[reg->reg_num];
             }
             break;
         case Save:
             {
-                if(reg->reg_num < 0 || reg->reg_num > sreg_size) { cerr << "attempt to access invalid index " << reg->reg_num; exit(1); }
+                if(reg->reg_num < 0 || reg->reg_num > sreg_size) { cerr << "attempt to access invalid index " << reg->reg_num << " line: " << yylineno << endl; exit(1); }
                 r = save_registers[reg->reg_num];
             }
             break;
         default:
-            cerr << "Unknown register type " << reg->type << endl;
+            cerr << "Unknown register type " << reg->type << " line: " << yylineno << endl;
             exit(1);
     }
 
-    if(!r) { cerr << "failed to find register " << reg->reg_num << " " << reg->type; exit(1); }
+    if(!r) { cerr << "failed to find register " << reg->reg_num << " " << reg->type << " line: " << yylineno << endl; exit(1); }
 
     if(!r->allocated)
     {
-        cerr << "double release of register " << reg->reg_num << " type " << reg->type;
+        cerr << "double release of register " << reg->reg_num << " type " << reg->type << " line: " << yylineno << endl;
         exit(1);
     }
 

@@ -5,6 +5,7 @@
 using namespace std;
 
 extern int yylineno;// defined and maintained in lex.cpp
+extern bool bison_verbose;
 
 Expression* Expression::unimp(Expression* e)
 {
@@ -16,7 +17,8 @@ Expression* Expression::plus(Expression* e)
 {
     if(canFold(e))
     {
-        cout << "const adding " << const_int << "+" << e->const_int << endl;
+        if(bison_verbose)
+            cout << "const adding " << const_int << "+" << e->const_int << endl;
         const_int += e->const_int;
         delete e;
     }
@@ -35,10 +37,12 @@ Expression* Expression::plus(Expression* e)
 
 Expression* Expression::sub(Expression* e)
 {
-    cout << "sub " << toString() << " " << e->toString() << endl;
+    if(bison_verbose)
+        cout << "sub " << toString() << " " << e->toString() << endl;
     if(canFold(e))
     {
-        cout << "const subtracting " << const_int << "-" << e->const_int << endl;
+        if(bison_verbose)
+            cout << "const subtracting " << const_int << "-" << e->const_int << endl;
         const_int -= e->const_int;
         delete e;
     }
@@ -59,7 +63,8 @@ Expression* Expression::mul(Expression* e)
 {
     if(canFold(e))
     {
-        cout << "const multiplying " << const_int << "*" << e->const_int << endl;
+        if(bison_verbose)
+            cout << "const multiplying " << const_int << "*" << e->const_int << endl;
         const_int *= e->const_int;
         delete e;
     }
@@ -81,7 +86,8 @@ Expression* Expression::div(Expression* e)
 {
     if(canFold(e))
     {
-        cout << "const dividing " << const_int << "/" << e->const_int << endl;
+        if(bison_verbose)
+            cout << "const dividing " << const_int << "/" << e->const_int << endl;
         const_int /= e->const_int;
         delete e;
     }
@@ -109,7 +115,8 @@ Expression* Expression::mod(Expression* e)
 {
     if(canFold(e))
     {
-        cout << "const mod'ing " << const_int << "%" << e->const_int << endl;
+        if(bison_verbose)
+            cout << "const mod'ing " << const_int << "%" << e->const_int << endl;
         const_int = const_int % e->const_int;
         delete e;
     }

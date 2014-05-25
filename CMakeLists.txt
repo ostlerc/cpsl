@@ -16,6 +16,7 @@ set(cpsl_srcs
   SymbolTable.cpp
   Expression.cpp
   Register.cpp
+  Symbol.cpp
   ${BISON_CpslParser_OUTPUTS}
   ${FLEX_CpslScanner_OUTPUTS}
 

@@ -13,9 +13,14 @@ int main(int argc, char **argv)
 {
     if ((argc > 1) && (freopen(argv[1], "r", stdin) == NULL))
     {
-        std::cout << argv[0] << ": File " << argv[1] << "cannot be opened." << std::endl;
+        cout << argv[0] << ": File " << argv[1] << "cannot be opened." << endl;
         return 1;
     }
+
+    cout << "\t.data" << endl;
+    cout << "dat:" << endl;
+    cout << "\t.text" << endl;
+    cout << "\t.globl main" << endl;
 
     yyparse();
 

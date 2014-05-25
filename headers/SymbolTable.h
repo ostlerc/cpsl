@@ -8,7 +8,7 @@
 #include "Symbol.h"
 #include "Expression.h"
 
-class SymbolTable 
+class SymbolTable
 {
     //Private constructor
     SymbolTable();
