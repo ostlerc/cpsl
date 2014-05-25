@@ -110,3 +110,10 @@ void Register::ReleaseRegister(Register* reg)
     //Successful release
     r->allocated = false;
 }
+
+string Register::name()
+{
+    string n = type == Temp ? "$t" : "$s";
+    n += to_string(reg_num);
+    return n;
+}

@@ -47,9 +47,11 @@ Expression* SymbolTable::expression (int i)
 Expression* SymbolTable::expression(string* s)
 {
     if(bison_verbose)
-        cout << "expression(string) '" << s->c_str() << "'" << endl;
+        cout << "expression(string) '" << *s << "'" << endl;
     Symbol *sym = findSymbol(s);
-    return new Expression(sym);
+
+    Expression *e = new Expression(sym);
+    return e;
 }
 
 Expression* SymbolTable::lValue(Symbol* s)
@@ -61,8 +63,27 @@ Expression* SymbolTable::lValue(Symbol* s)
 Expression* SymbolTable::expression_string(string* s)
 {
     if(bison_verbose)
-        cout << "expression_string '" << s->c_str() << "'" << endl;
-    return new Expression(*s);
+        cout << "expression_string '" << *s << "'" << endl;
+    Expression *e = new Expression(*s);
+    str_expr_list.push_back(e);
+    return e;
+}
+
+Expression* SymbolTable::expression_char(string* s)
+{
+    if(bison_verbose)
+        cout << "expression_char '" << *s << "'" << endl;
+
+    //remove character ticks and add quotes for the expression/symbol name
+    auto it = remove_if(std::begin(*s), std::end(*s), [](char c) {return (c == '\'');});
+    s->erase(it, std::end(*s));
+
+    *s = "\"" + *s + "\"";
+
+    //TODO: find similar string names so there are no duplicates in data section
+    Expression *e = new Expression(*s);
+    str_expr_list.push_back(e);
+    return e;
 }
 
 Symbol* SymbolTable::findSymbol(string* s)
@@ -89,15 +110,84 @@ void SymbolTable::create_vars(int type)
         exit(1);
     }
 
+    string names = " #(";
     for(unsigned int i = 0; i < var_list.size(); i++)
     {
         Symbol *s = new Symbol(var_list[i], 1, cur_offset);
         if(bison_verbose)
             cout << "creating symbol " << var_list[i] << " " << s << endl;
-        cout << "\t.data" << var_list[i] << "\t" << endl;
         symbols.push_back(s);
-        cur_offset -= 4;
+        if(i > 0)
+            names += " ";
+        names += var_list[i];// + "[" + cur_offset + "]";
+        cur_offset += 4;
     }
 
+    names += ")";
+
+    //TODO: int->str
+    cout << "\t.space " << var_list.size() * 4 << names << " +" << cur_offset << endl;
+
     var_list.clear();
+}
+
+void SymbolTable::add_to_expr_list(Expression* e)
+{
+    if(bison_verbose)
+        cout << "added expr " << e->toString() << " line: " << yylineno << endl;
+    expr_list.push_back(e);
+}
+
+void SymbolTable::write()
+{
+    if(expr_list.size() == 0)
+    {
+        cerr << "Missing arguments on line: " << yylineno << endl;
+        exit(1);
+    }
+
+    for(unsigned int i = 0; i < expr_list.size(); i++)
+        expr_list[i]->write();
+
+    expr_list.clear();
+}
+
+void SymbolTable::add_to_lval_list(Symbol* s)
+{
+    if(bison_verbose)
+        cout << "added lval (from list)" << s->name << " line: " << yylineno << endl;
+
+    lval_list.push_back(s);
+}
+
+void SymbolTable::read()
+{
+    if(lval_list.size() == 0)
+    {
+        cerr << "Missing arguments on line: " << yylineno << endl;
+        exit(1);
+    }
+
+    for(unsigned int i = 0; i < lval_list.size(); i++)
+        lval_list[i]->read();
+
+    lval_list.clear();
+}
+
+void SymbolTable::begin()
+{
+    cout << "\t.text" << endl;
+    cout << "main:";
+}
+
+void SymbolTable::end()
+{
+    cout << "\t.data" << endl;
+    if(bison_verbose)
+        cout << "there are " << str_expr_list.size() << " constant string entries to add" << endl;
+
+    for(int i = 0; i < str_expr_list.size(); i++)
+    {
+        str_expr_list[i]->store();
+    }
 }

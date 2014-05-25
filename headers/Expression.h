@@ -7,14 +7,15 @@
 class Expression
 {
     public:
-        Expression(int v) 
+        //TODO: remove types from expression and put them in symbol
+        Expression(int v)
             : type(INT)
             , const_int(v)
             , symbol(NULL)
             , reg(NULL)
         {}
 
-        Expression(Symbol *s) 
+        Expression(Symbol *s)
             : type(SYM)
             , const_int(1)
             , symbol(s)
@@ -24,8 +25,7 @@ class Expression
         Expression(std::string &name)
             : type(STR)
             , const_int(1)
-            , const_str(name)
-            , symbol(NULL)
+            , symbol(new Symbol(name))
             , reg(NULL)
         {}
 
@@ -38,6 +38,11 @@ class Expression
         Expression* div(Expression* e);
         Expression* mod(Expression* e);
 
+        std::string toString();
+
+        void write();
+        void store();
+
     private:
         enum ExpressionType
         {
@@ -48,12 +53,10 @@ class Expression
 
         int getInt();
         bool canFold(Expression* e);
-        std::string toString();
         std::string typeName();
 
-        ExpressionType type; 
+        ExpressionType type;
         int const_int;
-        std::string const_str;
         Symbol* symbol;
         Register* reg;
 };

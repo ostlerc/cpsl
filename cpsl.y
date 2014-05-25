@@ -4,7 +4,7 @@
 %{
 #include <stdio.h>
 #include <string>
-#include <list>
+#include <vector>
 #include <iostream>
 
 #include "SymbolTable.h"
@@ -15,7 +15,7 @@ extern "C" int yylex();
 %}
 
 %union{
-  int   int_val;
+  int int_val;
   std::string *str_val;
   SymbolTable *tableptr;
   Expression *exprptr;
@@ -70,7 +70,7 @@ extern "C" int yylex();
 
 %%
 
-program: constDecl typeDecl varDecl pOrFDecls block DOTOSYM { printf("finished!\n"); }
+program: constDecl typeDecl varDecl pOrFDecls block DOTOSYM { SymbolTable::instance()->end(); }
        ;
 constDecl: /*empty*/
          | CONSTSYM assignStatements
@@ -86,7 +86,7 @@ varStatements: varStatements varStatement
              ;
 varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars(0); }
             ;
-pOrFDecls: /*empty procedures or function decls*/
+pOrFDecls: /*empty procedures or function decls*/ { SymbolTable::instance()->begin(); }
          | pOrFDecls pOrFDecl
          ;
 pOrFDecl: procedureDecl
@@ -133,8 +133,8 @@ lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM
             | lValueHelper LBRACKETOSYM expression RBRACKETOSYM
             ;
-lValueList: lValue
-          | lValueList COMMAOSYM lValue
+lValueList: lValue { SymbolTable::instance()->add_to_lval_list($1); }
+          | lValueList COMMAOSYM lValue { SymbolTable::instance()->add_to_lval_list($3); }
           ;
 ifStatement: IFSYM expression THENSYM statementSequence elseifStatement elseStatement ENDSYM
            ;
@@ -156,9 +156,9 @@ stopStatement: STOPSYM
 returnStatement: RETURNSYM expression
                | RETURNSYM
                ;
-readStatement: READSYM LPARENOSYM lValueList RPARENOSYM
+readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); }
              ;
-writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM
+writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->write(); }
               ;
 procedureCall: IDENTSYM LPARENOSYM RPARENOSYM
              | IDENTSYM LPARENOSYM expressionList RPARENOSYM
@@ -199,7 +199,7 @@ commaIdentifier: COMMAOSYM IDENTSYM { SymbolTable::instance()->add_var($2); if(b
 arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type
          ;
 expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
-          | CHAROSYM { $$ = SymbolTable::instance()->expression_string($1); }
+          | CHAROSYM { $$ = SymbolTable::instance()->expression_char($1); }
           | STROSYM { $$ = SymbolTable::instance()->expression_string($1); }
           /*| IDENTSYM covered by lValue*/
           | expression BAROSYM expression { $$ = $1->unimp($3); }
@@ -226,8 +226,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
-expressionList: expression
-          | expressionList COMMAOSYM expression
+expressionList: expression { SymbolTable::instance()->add_to_expr_list($1); }
+          | expressionList COMMAOSYM expression { SymbolTable::instance()->add_to_expr_list($3); }
           ;
 %%
 

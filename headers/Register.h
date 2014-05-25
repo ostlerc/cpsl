@@ -2,6 +2,7 @@
 #define __REGISTER_H__
 
 #include <vector>
+#include <string>
 
 class Register
 {
@@ -14,6 +15,8 @@ class Register
 
         static Register* FindRegister(RegisterType type);
         static void ReleaseRegister(Register* reg);
+
+        std::string name();
 
     private:
         Register(int reg_num, RegisterType type);

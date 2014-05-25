@@ -156,6 +156,8 @@ string Expression::typeName()
             return "symbol";
             break;
     }
+
+    return "unknown";
 }
 
 string Expression::toString()
@@ -167,8 +169,15 @@ string Expression::toString()
 
     o += typeName();
 
+    switch(type)
+    {
+        case INT:
+            o += " " + to_string(const_int);
+            break;
+    }
+
     if(symbol)
-        o += " " + symbol->name;
+        o += " " + symbol->name + symbol->str_val();
 
     return o;
 }
@@ -182,4 +191,58 @@ int Expression::getInt()
     }
 
     return type == INT ? const_int : symbol->value;
+}
+
+void Expression::write()
+{
+    if(bison_verbose)
+        cout << "writing expression " << toString() << endl;
+
+    switch(type)
+    {
+        case INT:
+            {
+                cout << "\tli $v0, 1" << endl;
+                cout << "\tli $a0, " << getInt() << " #" << toString() << " line: " << yylineno << endl;
+            }
+            break;
+        case STR:
+            {
+                cout << "\tli $v0, 4" << endl;
+                cout << "\tla $a0, " << symbol->name << " # " << symbol->str_value << " line: " << yylineno << endl;
+            }
+            break;
+        case SYM:
+            if(!reg)
+                reg = Register::FindRegister(Register::Temp);
+
+            cout << "\tli $v0 1" << endl;
+            cout << "\tla " << reg->name() << " dat" << endl;
+            cout << "\tlw $a0, " << symbol->offset << "(" << reg->name() << ")" << endl;
+            reg = NULL;
+            //cout << "\tlw " << reg->name() << ", " << "0"<< "($fp) #" << toString() << endl;
+            break;
+    }
+
+    cout << "\tsyscall" << endl;
+}
+
+void Expression::store()
+{
+    if(bison_verbose)
+        cout << "storing " << toString() << endl;
+
+    if(type != STR)
+    {
+        cerr << "Error trying to store non const string on line: " << yylineno << endl;
+        exit(1);
+    }
+
+    if(!symbol)
+    {
+        cerr << "Error trying to store const string with NULL symbol on line: " << yylineno << endl;
+        exit(1);
+    }
+
+    cout << symbol->name << ":\t.asciiz" << symbol->str_value << endl;
 }
