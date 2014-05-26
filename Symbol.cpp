@@ -49,10 +49,47 @@ void Symbol::read()
     if(bison_verbose)
         cout << "\treading symbol " << toString() << endl;
 
-    cout << "\tli $v0, 5 #read symbol " << toString() << " on line: " << yylineno << endl;
-    cout << "\tsyscall" << endl;
+    if(Type::isConst(type))
+    {
+        if(bison_verbose) //skip this error (for files types we don't support yet)
+        {
+            cerr << "attempting to read a value into a const var " << toString() << " on line " << yylineno << endl;
+            exit(1);
+        }
+        return;
+    }
 
-    cout << "\tsw $v0, " << offset << "($gp)" << endl;
+    switch(type)
+    {
+        case Type::Integer: 
+            {
+                cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
+                cout << "\tsyscall" << endl;
+
+                cout << "\tsw $v0, " << offset << "($gp)" << endl;
+            }
+            break;
+        case Type::Char:
+            {
+                cout << "\tli $v0, 12 #read " << toString() << " on line: " << yylineno << endl;
+                cout << "\tsyscall" << endl;
+
+                cout << "\tsb $v0, " << offset << "($gp)" << endl;
+            }
+            break;
+        case Type::Bool:
+            {
+                cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
+                cout << "\tsyscall" << endl;
+
+                cout << "\tsb $v0, " << offset << "($gp)" << endl;
+            }
+            break;
+        default:
+            cerr << "Unsupported read type " << toString() << " on line " << yylineno << endl;
+            exit(1);
+            break;
+    }
 }
 
 string Symbol::toString()
