@@ -44,6 +44,10 @@ string Expression::toString(Operation op)
               return "succ";
         case Pred:
               return "pred";
+        case Chr:
+              return "chr";
+        case Ord:
+              return "ord";
         default:
               cerr << "Unknown op " << op << " in function " << __FUNCTION__ << " line: " << yylineno << endl;
               exit(1);
@@ -55,45 +59,81 @@ Expression* Expression::exec(Expression* e, Operation op)
     if(bison_verbose)
         cout << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 
+    int rhs_v = 0;
+    switch(e->symbol->type)
+    {
+        case Type::Integer:
+        case Type::Const_Integer:
+            rhs_v = e->symbol->int_value;
+            break;
+        case Type::Bool:
+        case Type::Const_Bool:
+            rhs_v = e->symbol->bool_value;
+        case Type::Const_Char:
+            rhs_v = e->symbol->char_value;
+            break;
+        default:
+            cerr << "unhandled (rhs) type error on line " << yylineno << " " << e->toString() << "-" << e->toString() << endl;
+    }
+
     if(canFold(e))
     {
+        int lhs_v = 0;
+        switch(symbol->type)
+        {
+            case Type::Integer:
+            case Type::Const_Integer:
+                lhs_v = symbol->int_value;
+                break;
+            case Type::Bool:
+            case Type::Const_Bool:
+                lhs_v = symbol->bool_value;
+                break;
+            case Type::Const_Char:
+                lhs_v = symbol->char_value;
+                break;
+            default:
+                cerr << "unhandled (lhs) type error on line " << yylineno << " " << toString() << "-" << e->toString() << endl;
+                exit(1);
+        }
+
         if(bison_verbose)
-            cout << "const " << toString(op) << " folding " << symbol->int_value<< ", " << e->symbol->int_value << endl;
+            cout << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
 
         switch(op)
         {
             case Add:
-                symbol->int_value += e->symbol->int_value;
+                setVal(lhs_v + rhs_v);
                 break;
             case Sub:
-                symbol->int_value -= e->symbol->int_value;
+                setVal(lhs_v - rhs_v);
                 break;
             case Mul:
-                symbol->int_value *= e->symbol->int_value;
+                setVal(lhs_v * rhs_v);
                 break;
             case Div:
-                symbol->int_value /= e->symbol->int_value;
+                setVal(lhs_v / rhs_v);
                 break;
             case Mod:
-                symbol->int_value = symbol->int_value % e->symbol->int_value;
+                setVal(lhs_v % rhs_v);
                 break;
             case Eq:
-                symbol->bool_value = symbol->int_value == e->symbol->int_value;
+                setVal(lhs_v == rhs_v);
                 break;
             case Ne:
-                symbol->bool_value = symbol->int_value != e->symbol->int_value;
+                setVal(lhs_v != rhs_v);
                 break;
             case Lt:
-                symbol->bool_value = symbol->int_value < e->symbol->int_value;
+                setVal(lhs_v < rhs_v);
                 break;
             case Gt:
-                symbol->bool_value = symbol->int_value > e->symbol->int_value;
+                setVal(lhs_v > rhs_v);
                 break;
             case Lte:
-                symbol->bool_value = symbol->int_value <= e->symbol->int_value;
+                setVal(lhs_v <= rhs_v);
                 break;
             case Gte:
-                symbol->bool_value = symbol->int_value >= e->symbol->int_value;
+                setVal(lhs_v >= rhs_v);
                 break;
             default:
                 {
@@ -101,22 +141,23 @@ Expression* Expression::exec(Expression* e, Operation op)
                     exit(1);
                 }
         }
-        delete e;
-        setType(op);
         return this;
     }
     switch(symbol->type)
     {
         case Type::Integer:
         case Type::Const_Integer:
+        case Type::Bool:
+        case Type::Char:
+        case Type::Const_Char:
             {
                 loadInTemp();
 
-                string rhs;
+                string rhs_str;
                 if(!Type::isConst(e->symbol->type))
                 {
                     e->loadInTemp();
-                    rhs = e->reg->name();
+                    rhs_str = e->reg->name();
                 }
                 else
                 {
@@ -127,16 +168,16 @@ Expression* Expression::exec(Expression* e, Operation op)
                         case Mul:
                         case Div:
                         case Mod:
-                            rhs = to_string(e->symbol->int_value);
-                            break;
                         case Eq:
                         case Ne:
+                            rhs_str = to_string(rhs_v);
+                            break;
                         case Lt:
                         case Gt:
                         case Lte:
                         case Gte:
                             e->loadInTemp();
-                            rhs = e->reg->name();
+                            rhs_str = e->reg->name();
                             break;
                         default:
                             {
@@ -149,40 +190,38 @@ Expression* Expression::exec(Expression* e, Operation op)
                 switch(op)
                 {
                     case Add:
-                        cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Sub:
-                        cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Mul:
-                        cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Div:
-                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Mod:
-                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
                         break;
-
-                        //rhs must be reg for conditionals
                     case Eq:
-                        cout << "\tseq " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tseq " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Ne:
-                        cout << "\tsne " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tsne " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Lt:
-                        cout << "\tslt " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tslt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Gt:
-                        cout << "\tsgt " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tsgt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Lte:
-                        cout << "\tsle " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tsle " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Gte:
-                        cout << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs << endl;
+                        cout << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     default:
                         {
@@ -194,15 +233,17 @@ Expression* Expression::exec(Expression* e, Operation op)
                 if(e->reg)
                     e->free();
 
-                symbol->type = Type::Integer; //non folding
+                Expression *exp = new Expression(new Symbol(symbol));
+                exp->reg = reg;
+                exp->setType(op);
+                reg = NULL;
 
-                setType(op);
-                return this;
+                return exp;
             }
             break;
         default:
             {
-                cerr << "Unimplemented or incorret add type " << symbol->type << " " << e->symbol->type << " line: " << yylineno << endl;
+                cerr << "Unimplemented or incorrect exec type " << toString() << "-" << e->toString() << " line: " << yylineno << endl;
                 exit(1);
             }
             break;
@@ -217,26 +258,14 @@ Expression* Expression::exec(Operation op)
     {
         case Pred:
             {
-                if(Type::isConst(symbol->type))
-                    invalidType();
-
-                loadInTemp();
-                cout << "\taddi " << reg->name() << ", " << reg->name() << ", 1 #increment by one from line:" << yylineno << endl;
-                //cout << "\tsw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
-                //Register::ReleaseRegister(reg);
-                //reg = NULL;
+                Expression *e = new Expression(new Symbol(1));
+                return exec(e, Sub);
             }
             break;
         case Succ:
             {
-                if(Type::isConst(symbol->type))
-                    invalidType();
-
-                loadInTemp();
-                cout << "\tsubi " << reg->name() << ", " << reg->name() << ", 1 #decrement by one from line:" << yylineno << endl;
-                //cout << "\tsw " << reg->name() << ", " << symbol->offset << "($gp)" << endl;
-                //Register::ReleaseRegister(reg);
-                //reg = NULL;
+                Expression *e = new Expression(new Symbol(1));
+                return exec(e, Add);
             }
             break;
         case Negate:
@@ -247,6 +276,12 @@ Expression* Expression::exec(Operation op)
                 loadInTemp();
                 cout << "\tneg " << reg->name() << ", " << reg->name() << " #negate " << symbol->name << " on line: " << yylineno << endl;
             }
+            break;
+        case Chr:
+        case Ord:
+            if(bison_verbose)
+                cout << "setting type for " << toString() << " on line: " << yylineno << endl;
+            setType(op);
             break;
         default:
             {
@@ -266,7 +301,9 @@ void Expression::invalidType()
 
 bool Expression::canFold(Expression* e)
 {
-    return symbol->type == Type::Const_Integer && e->symbol->type == Type::Const_Integer;
+
+    return Type::isConst(symbol->type) && Type::isConst(e->symbol->type) &&
+           Type::isFoldable(symbol->type) && Type::isFoldable(e->symbol->type);
 }
 
 string Expression::toString()
@@ -312,41 +349,51 @@ void Expression::print()
                 }
             }
             break;
+        case Type::Bool:
+            {
+                cout << "\tli $v0 1" << endl;
+                if(reg)
+                {
+                    cout << "\tsne $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
+                }
+                else
+                {
+                    cout << "\tlb $a0, " << symbol->offset << "($gp)" << endl;
+                    cout << "\tsne $a0, $a0, 0 # Boolean var set only to 1 or 0" << endl;
+                }
+            }
+            break;
+        case Type::Char:
+            {
+                cout << "\tli $v0 11" << endl; //print character
+                if(reg)
+                {
+                    cout << "\tadd $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
+                }
+                else
+                {
+                    cout << "\tlw $a0, " << symbol->offset << "($gp)" << endl;
+                }
+            }
+            break;
+        case Type::Const_Bool:
+            {
+                cout << "\tli $v0, 1" << endl;
+                cout << "\tli $a0, " << symbol->bool_value << " #" << toString() << " line: " << yylineno << endl;
+            }
+            break;
         default: //non const printing
-        //case Type::Char:
-        //case Type::Const_Char:
-        //case Type::Const_Bool:
-        {
-            //TODO: finish printing here
-            cerr << "Unimplemented print type " << Type::toString(symbol->type) << " on line: " << yylineno << endl;
-            exit(1);
-        }
+            {
+                //TODO: finish printing here
+                cerr << "Unimplemented print type " << toString() << " on line: " << yylineno << endl;
+                exit(1);
+            }
         break;
             break;
     }
 
     cout << "\tsyscall" << endl;
     free();
-}
-
-void Expression::store()
-{
-    if(bison_verbose)
-        cout << "storing " << toString() << endl;
-
-    if(symbol->type != Type::Const_String && symbol->type != Type::Const_Char)
-    {
-        cerr << "Error trying to store non const string on line: " << yylineno << endl;
-        exit(1);
-    }
-
-    if(!symbol)
-    {
-        cerr << "Error trying to store const string with NULL symbol on line: " << yylineno << endl;
-        exit(1);
-    }
-
-    cout << symbol->name << ":\t.asciiz" << symbol->str_value << endl;
 }
 
 void Expression::loadInTemp()
@@ -364,22 +411,35 @@ void Expression::loadInTemp()
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
+        case Type::Bool:
+        case Type::Char:
+            {
+                cout << "\tlb " << reg->name() << ", " << symbol->offset << "($gp) "
+                    << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
+            }
+            break;
         case Type::Const_Integer:
+        case Type::Const_Bool:
             {
                 cout << "\tli " << reg->name() << ", " << symbol->int_value
                     << "#Loading const integer into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_String:
-        case Type::Const_Char:
             {
                 cout << "\tla " << reg->name() << ", " << symbol->name
-                    << "#Loading " << Type::toString(symbol->type) << " (" << symbol->str_value << " into reg " << reg->name() << " on line: " << yylineno << endl;
+                    << " # Loading " << toString() << " on line: " << yylineno << endl;
+            }
+            break;
+        case Type::Const_Char:
+            {
+                cout << "\tli " << reg->name() << ", " << (int)symbol->char_value
+                    << " # Loading " << toString() << " on line: " << yylineno << endl;
             }
             break;
         default:
             {
-                cerr << "Attempting to load string constant into register invalid or unimplemented on line: " << yylineno << endl;
+                cerr << "Attempting to load expression (" << toString() << ") into a temp register is invalid or unimplemented. line: " << yylineno << endl;
                 exit(1);
             }
     }
@@ -396,36 +456,39 @@ void Expression::free()
 
 void Expression::assign(Symbol* s)
 {
-    if(symbol->type != s->type)
+    if(!Type::match(symbol->type, s->type))
     {
         cerr << "Expression type mismatch: " 
-            << Type::toString(symbol->type) << ", " 
-            << Type::toString(s->type) << " on line " << yylineno << endl;
-        exit(1);
-    }
-    if(Type::isConst(symbol->type))
-    {
-        cerr << "const lValue assignment not allowed on line " << yylineno << endl;
+            << toString() << "-"
+            << s->toString() << " on line " << yylineno << endl;
         exit(1);
     }
 
-    switch(symbol->type)
+    //s is actually the lhs
+    if(Type::isConst(s->type))
     {
-        case Type::Integer:
+        cerr << "const lValue (" << toString() << ") assignment not allowed on line " << yylineno << endl;
+        exit(1);
+    }
+
+    loadInTemp();
+    switch(s->type)
+    {
+        case Type::Bool:
+        case Type::Char:
             {
-                loadInTemp();
-                cout << "\tsw " << reg->name() << ", " << s->offset << "($gp) #Assign var " << s->name << " to " << toString() << " on line: " << yylineno << endl;
-                Register::ReleaseRegister(reg);
-                reg = NULL;
-                symbol = s;
+                cout << "\tsb " << reg->name() << ", " << s->offset << "($gp) #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
         default:
             {
-                cerr << "Attempting to assign var with invalid or unimplemented type on line: " << yylineno << endl;
-                exit(1);
+                cout << "\tsw " << reg->name() << ", " << s->offset << "($gp) #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
+        break;
     }
+
+    Register::ReleaseRegister(reg);
+    reg = NULL;
 }
 
 void Expression::setType(Operation op)
@@ -437,7 +500,7 @@ void Expression::setType(Operation op)
         case Mul:
         case Div:
         case Mod:
-            symbol->type = Type::Integer;
+            symbol->setType(Type::Integer);
             break;
         case Eq:
         case Ne:
@@ -445,7 +508,39 @@ void Expression::setType(Operation op)
         case Gt:
         case Lte:
         case Gte:
-            symbol->type = Type::Bool;
+            symbol->setType(Type::Bool);
             break;
+        case Chr:
+            symbol->setType(Type::Char);
+            break;
+        case Ord:
+            symbol->setType(Type::Integer);
+            break;
+        default:
+            break;
+    }
+}
+
+void Expression::setVal(int v)
+{
+    if(bison_verbose)
+        cout << "setting value " << v << " for " << toString() << " on line " << yylineno << endl;
+
+    switch(symbol->type)
+    {
+        case Type::Const_Integer:
+            symbol->int_value = v;
+            break;
+        case Type::Const_Bool:
+            symbol->bool_value = v == 0 ? false : true;
+            break;
+        case Type::Char:
+            symbol->char_value = (char)v;
+            break;
+        default:
+            {
+                cerr << "Attempting to set incorrect or unimplemented const value " << toString() << " on line " << yylineno << endl;
+                exit(1);
+            }
     }
 }

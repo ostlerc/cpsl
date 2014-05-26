@@ -11,6 +11,7 @@ extern bool bison_verbose;
 
 SymbolTable::SymbolTable()
     : cur_offset(0)
+    , ignore_next_lval(false)
 { }
 
 SymbolTable::~SymbolTable()
@@ -74,9 +75,9 @@ Expression* SymbolTable::expression_string(string* s)
         cout << "expression_string '" << *s << "'" << endl;
 
     //TODO: find similar string names so there are no duplicates in data section
-    Expression *e = new Expression(new Symbol(*s));
-    str_expr_list.push_back(e);
-    return e;
+    Symbol *sym = new Symbol(*s);
+    c_symbols.push_back(sym);
+    return new Expression(sym);
 }
 
 Expression* SymbolTable::expression_char(string* s)
@@ -90,10 +91,40 @@ Expression* SymbolTable::expression_char(string* s)
 
     *s = "\"" + *s + "\"";
 
-    //TODO: find similar string names so there are no duplicates in data section
-    Expression *e = new Expression(new Symbol(*s, Type::Const_Char));
-    str_expr_list.push_back(e);
-    return e;
+    char c = s->at(1);
+
+    if((*s)[1] == '\\')
+    {
+        switch((*s)[2])
+        {
+            case 'n':
+                c = '\n';
+                break;
+            case 'r':
+                c = '\r';
+                break;
+            case 'b':
+                c = '\b';
+                break;
+            case 'f':
+                c = '\f';
+                break;
+            case 't':
+                c = '\t';
+                break;
+            default:
+                {
+                    if(bison_verbose)
+                        cout << "special char used other than regular ones..." << endl;
+
+                    c = (*s)[2];
+                }
+        }
+    }
+
+    Symbol *sym = new Symbol(c, *s);
+    c_symbols.push_back(sym);
+    return new Expression(sym);
 }
 
 Symbol* SymbolTable::findSymbol(string* s)
@@ -117,7 +148,7 @@ void SymbolTable::create_vars(std::string *type_string)
     string names = " #(";
     for(unsigned int i = 0; i < var_list.size(); i++)
     {
-        Symbol *s = new Symbol(var_list[i], cur_offset, Type::fromString(*type_string));
+        Symbol *s = new Symbol(var_list[i], cur_offset, Type::fromString(*type_string, false));
         if(bison_verbose)
             cout << "created symbol " << " " << s->toString() << endl;
         symbols.push_back(s);
@@ -212,8 +243,15 @@ void SymbolTable::begin()
 
 void SymbolTable::initialize()
 {
-    //create_symbol("true", 1);
-    //create_symbol("false", 0);
+    Expression *t = new Expression(new Symbol("true", true));
+    Expression *T = new Expression(new Symbol("TRUE", true));
+    Expression *f = new Expression(new Symbol("false", false));
+    Expression *F = new Expression(new Symbol("FALSE", false));
+
+    symbols.push_back(t->symbol);
+    symbols.push_back(T->symbol);
+    symbols.push_back(f->symbol);
+    symbols.push_back(F->symbol);
 }
 
 void SymbolTable::end()
@@ -223,14 +261,21 @@ void SymbolTable::end()
     cout << "\t.data" << endl;
 
     if(bison_verbose)
-        cout << "there are " << str_expr_list.size() << " constant string entries to add" << endl;
+        cout << "there are " << c_symbols.size() << " constant string entries to add" << endl;
 
-    for(unsigned int i = 0; i < str_expr_list.size(); i++)
-        str_expr_list[i]->store();
+    for(unsigned int i = 0; i < c_symbols.size(); i++)
+        c_symbols[i]->store();
 }
 
 void SymbolTable::assign(Symbol* s, Expression* e)
 {
-    e->assign(s);
+    if(ignore_next_lval)
+        ignore_next_lval = false;
+    else
+        e->assign(s);
+}
 
+void SymbolTable::ignoreNextLValue()
+{
+    ignore_next_lval = true;
 }

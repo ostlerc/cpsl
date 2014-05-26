@@ -77,10 +77,19 @@ Register* Register::FindRegister(RegisterType type)
     exit(1);
 }
 
+string Register::toString()
+{
+    string o = "register #" + to_string(reg_num) + " type " + ( type == Temp ? "temp" : "save") + " line: ";
+    return o;
+}
+
 void Register::ReleaseRegister(Register* reg)
 {
-    Register *r = NULL;
+    if(bison_verbose)
+        cout << "releasing register " << reg->toString();
+
     if(!reg) { cerr << "attempt to release NULL register line: " << yylineno << endl; exit(1); }
+    Register *r = NULL;
 
     switch(reg->type)
     {

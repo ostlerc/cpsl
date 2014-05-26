@@ -102,7 +102,7 @@ functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONO
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
             ;
 formalParameters: /*empty*/
-                | formalParameter
+                | formalParameter { SymbolTable::instance()->create_vars($1); }
                 | formalParameters SEMIOSYM formalParameter { SymbolTable::instance()->create_vars($3); }
                 ;
 formalParameter: VARSYM identList COLONOSYM type { $$ = $4; }
@@ -133,8 +133,8 @@ assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $
 lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol($1); }
       ;
 lValueHelper: /*empty*/
-            | lValueHelper DOTOSYM IDENTSYM
-            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM { $3->free(); }
+            | lValueHelper DOTOSYM IDENTSYM { SymbolTable::instance()->ignoreNextLValue(); }
+            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM { $3->free(); SymbolTable::instance()->ignoreNextLValue(); }
             ;
 lValueList: lValue { SymbolTable::instance()->add_to_lval_list($1); }
           | lValueList COMMAOSYM lValue { SymbolTable::instance()->add_to_lval_list($3); }
@@ -233,8 +233,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | LPARENOSYM expression RPARENOSYM { $$ = $2; }
           | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
           | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
-          | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
-          | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Chr); }
+          | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Ord); }
           | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Pred); }
           | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Succ); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }

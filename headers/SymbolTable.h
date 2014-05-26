@@ -36,15 +36,19 @@ class SymbolTable
         void checkRegisters();
         void create_symbol(std::string name, int value);
         void assign(Symbol* s, Expression* e);
+
+        //hackery for now
         Expression* unimp();
+        void ignoreNextLValue();
 
     private:
         std::vector<Expression*> expr_list;
         std::vector<std::string> var_list;
         std::vector<Symbol*> symbols;
-        std::vector<Expression*> str_expr_list; //used to write out const string data at end of program
+        std::vector<Symbol*> c_symbols; //used to write out const string data at end of program
         std::vector<Symbol*> lval_list; //used to store the list of lvals about to be acted on
         int cur_offset;
+        bool ignore_next_lval;
 };
 
 #endif //__SYMBOL_TABLE_H__

@@ -37,7 +37,9 @@ class Expression
             Gte,
             Succ,
             Pred,
-            Negate
+            Negate,
+            Chr,
+            Ord
         };
 
         Expression* exec(Expression* e, Operation op);
@@ -46,7 +48,6 @@ class Expression
         std::string toString();
 
         void print(); //print expression result to prompt
-        void store(); //write out const string data to .data section
 
         void loadInTemp();
         void free(); //release temporary register
@@ -59,6 +60,7 @@ class Expression
         std::string toString(Operation op);
 
         bool canFold(Expression* e);
+        void setVal(int);
         std::string typeName();
 
         Symbol* symbol;

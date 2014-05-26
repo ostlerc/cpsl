@@ -26,6 +26,18 @@ Symbol::Symbol(std::string& str_value, Type::ValueType vt, int offset)
     name = NewLabel(prefix);
 }
 
+Symbol::Symbol(Symbol* s)
+{
+    name = s->name;
+    str_value = s->str_value;
+    int_value = s->int_value;
+    bool_value = s->bool_value;
+    char_value = s->char_value;
+    offset = s->offset;
+    type = s->type;
+    size = s->size;
+}
+
 std::string Symbol::NewLabel(const string& prefix)
 {
     static int at = 0;
@@ -52,8 +64,82 @@ string Symbol::toString()
     {
         case Type::Const_Integer:
             o += " val=" + to_string(int_value);
+            break;
+        case Type::Const_String:
+            o += " val=" + str_value;
+            break;
+        case Type::Const_Char:
+            o += string(" val='") + char_value + string("'");
+            break;
+        case Type::Const_Bool:
+            o += " val=" + bool_value;
+            break;
+        default:
+            break;
     }
 
     return o;
     //TODO: show const symbols values here
 }
+
+void Symbol::store()
+{
+    if(bison_verbose)
+        cout << "storing " << toString() << endl;
+
+    switch(type)
+    {
+        case Type::Const_String:
+        case Type::Const_Char:
+            cout << name << ":\t.asciiz " << str_value << endl;
+            break;
+        default:
+            {
+                cerr << "attempt to store symbol incorrect or unimplemented type (" << toString() << ") on line: " << yylineno << endl;
+                exit(1);
+            }
+            break;
+    }
+}
+
+void Symbol::setType(Type::ValueType vt)
+{
+    int v = -1;
+    switch(type)
+    {
+        case Type::Const_Integer:
+            v = int_value;
+            break;
+        case Type::Const_Char:
+            v = char_value;
+            break;
+        case Type::Const_Bool:
+            v = bool_value;
+            break;
+        default:
+            type = vt;
+            return;
+            break;
+    }
+
+    switch(vt)
+    {
+        case Type::Const_Integer:
+        case Type::Integer:
+            int_value = v;
+            break;
+        case Type::Const_Char:
+        case Type::Char:
+            char_value = v;
+            break;
+        case Type::Const_Bool:
+        case Type::Bool:
+            bool_value = v;
+            break;
+        default:
+            break;
+    }
+
+    type = vt;
+}
+

@@ -18,6 +18,7 @@ class Register
         static void ReleaseRegister(Register* reg);
 
         std::string name();
+        std::string toString();
 
     private:
         Register(int reg_num, RegisterType type);

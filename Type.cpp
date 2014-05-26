@@ -5,6 +5,7 @@
 using namespace std;
 
 extern int yylineno;
+extern int bison_verbose;
 
 Type::Type(ValueType type) : vt(type) {}
 Type::~Type() {}
@@ -71,14 +72,107 @@ string Type::prefix(ValueType vt)
     }
 }
 
-Type::ValueType Type::fromString(std::string type_string)
+Type::ValueType Type::fromString(std::string type_string, bool is_const)
 {
-    if(type_string == "integer")
-        return Integer;
+    if(type_string == "integer" || type_string == "INTEGER")
+        return is_const ? Const_Integer : Integer;
+    else if(type_string == "boolean" || type_string == "BOOLEAN")
+        return is_const ? Const_Bool : Bool;
+    else if(type_string == "char" || type_string == "CHAR")
+        return is_const ? Const_Char : Char;
 
     if(type_string == "0record" || type_string == "0array")
     {
-        cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
+        if(bison_verbose)
+        {
+            cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
+            exit(1);
+        }
     }
-    exit(1);
+    else
+    {
+        //cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
+        //exit(1);
+    }
+}
+
+bool Type::isFoldable(ValueType type)
+{
+    switch(type)
+    {
+        case Const_Integer:
+        case Const_Bool:
+            return true;
+        case Const_String:
+        case Const_Char:
+        case Integer:
+        case Char:
+        case Bool:
+            return false;
+        default:
+            cerr << "Unknown valuetype " << toString(type) << " on line: " << yylineno << endl;
+            exit(1);
+    }
+}
+
+bool Type::match(ValueType lhs, ValueType rhs)
+{
+    if(lhs == rhs)
+        return true;
+
+    if(lhs == Const_String || rhs == Const_String)
+        return false;
+
+    //if(nonconst_val(lhs) == nonconst_val(rhs))
+    return true;
+}
+
+Type::ValueType Type::nonconst_val(ValueType type)
+{
+    if(!isConst(type))
+        return type;
+
+    switch(type)
+    {
+        case Const_Integer:
+            return Integer;
+        case Const_Char:
+            return Char;
+        case Const_Bool:
+            return Bool;
+        case Const_String:
+            {
+                cerr << "cannot have non const value of string. line:" << yylineno << endl;
+                exit(1);
+            }
+            break;
+        default:
+            {
+                cerr << "Unknown const type found in nonconst_val on line: " << yylineno << endl;
+                exit(1);
+            }
+            break;
+    }
+}
+
+Type::ValueType Type::const_val(ValueType type)
+{
+    if(isConst(type))
+        return type;
+
+    switch(type)
+    {
+        case Integer:
+            return Const_Integer;
+        case Char:
+            return Const_Char;
+        case Bool:
+            return Const_Bool;
+        default:
+            {
+                cerr << "Unknown non_const type found in const_val on line: " << yylineno << endl;
+                exit(1);
+            }
+            break;
+    }
 }
