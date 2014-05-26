@@ -85,6 +85,11 @@ void Symbol::read()
                 cout << "\tsb $v0, " << offset << "($gp)" << endl;
             }
             break;
+        case Type::Unknown:
+            {
+                //Do nothing for unknown types right now
+            }
+            break;
         default:
             cerr << "Unsupported read type " << toString() << " on line " << yylineno << endl;
             exit(1);
@@ -179,4 +184,3 @@ void Symbol::setType(Type::ValueType vt)
 
     type = vt;
 }
-

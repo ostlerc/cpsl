@@ -72,6 +72,8 @@ Expression* Expression::exec(Expression* e, Operation op)
         case Type::Const_Char:
             rhs_v = e->symbol->char_value;
             break;
+        case Type::Unknown:
+            return this; //skip unknown types for now
         default:
             cerr << "unhandled (rhs) type error on line " << yylineno << " " << e->toString() << "-" << e->toString() << endl;
     }
@@ -382,9 +384,13 @@ void Expression::print()
                 cout << "\tli $a0, " << symbol->bool_value << " #" << toString() << " line: " << yylineno << endl;
             }
             break;
-        default: //non const printing
+        case Type::Unknown:
             {
-                //TODO: finish printing here
+                //skip unknown for now
+            }
+            break;
+        default:
+            {
                 cerr << "Unimplemented print type " << toString() << " on line: " << yylineno << endl;
                 exit(1);
             }
@@ -435,6 +441,11 @@ void Expression::loadInTemp()
             {
                 cout << "\tli " << reg->name() << ", " << (int)symbol->char_value
                     << " # Loading " << toString() << " on line: " << yylineno << endl;
+            }
+            break;
+        case Type::Unknown:
+            {
+                //Skip unknown for now
             }
             break;
         default:

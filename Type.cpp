@@ -42,6 +42,8 @@ string Type::toString(ValueType vt)
             return "char";
         case Bool:
             return "bool";
+        case Unknown:
+            return "unknown";
         default:
             cerr << "Unknown valuetype " << vt << " on line: " << yylineno << endl;
             exit(1);
@@ -91,8 +93,12 @@ Type::ValueType Type::fromString(std::string type_string, bool is_const)
     }
     else
     {
-        //cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
-        //exit(1);
+        if(bison_verbose)
+        {
+            cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
+            exit(1);
+        }
+        return Unknown;
     }
 }
 
@@ -108,6 +114,8 @@ bool Type::isFoldable(ValueType type)
         case Integer:
         case Char:
         case Bool:
+            return false;
+        case Unknown:
             return false;
         default:
             cerr << "Unknown valuetype " << toString(type) << " on line: " << yylineno << endl;

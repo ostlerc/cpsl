@@ -13,7 +13,8 @@ class Type
             Const_Bool,
             Integer,
             Char,
-            Bool
+            Bool,
+            Unknown
         };
 
         Type(ValueType type);
