@@ -1,0 +1,5 @@
+make_shared pointers
+improve type system
+finish all expressions
+chr
+ord

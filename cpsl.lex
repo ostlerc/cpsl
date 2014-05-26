@@ -8,6 +8,7 @@
 #include "SymbolTable.h"
 #include "cpsl.hpp"
 extern "C" int yylex();
+extern int yylineno;
 %}
 
 %%
@@ -70,7 +71,7 @@ extern "C" int yylex();
 0x[[:digit:]a-fA-F]+ { yylval.int_val = strtol(yytext, &t, 16); if(verbose) printf("hex(%s)\n", yytext); return INTOSYM; }
 0[^x][0-7]+ { yylval.int_val = strtol(yytext, &t, 8); if(verbose) printf("octal(%s)\n", yytext); return INTOSYM; }
 [[:digit:]]+ { yylval.int_val = atoi(yytext); if(verbose) printf("integer(%s)\n", yytext); return INTOSYM; }
-'(\\[nrbtf]|.)' { yylval.str_val = new std::string(yytext); if(verbose) printf("character(%s)\n", yytext); return CHAROSYM; }
+'(\\.|[[:alnum:]_ !@#$%^&*()|/])' { yylval.str_val = new std::string(yytext); if(verbose) printf("character(%s)\n", yytext); return CHAROSYM; }
 \"[^\"\n]*\" { yylval.str_val = new std::string(yytext); if(verbose) printf("string(%s)\n", yytext); return STROSYM; }
 \$.*$ { if(verbose) printf("comment(%s)\n", yytext); }
 . { fprintf(stderr, "Incorrect syntax on line %d '%s'\n", yylineno, yytext); REJECT; }

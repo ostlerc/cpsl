@@ -3,32 +3,51 @@
 
 #include <string>
 
+#include "Type.h"
+
 class Symbol
 {
     public:
-        Symbol(std::string& name, int value, int offset)
+        Symbol(std::string& name, int offset, Type::ValueType type)
             : name(name)
-            , value(value)
-            , offset(offset) {}
+            , offset(offset) 
+            , type(type)
+            , size(4)
+        {}
 
         Symbol(std::string& str_value)
-            : name(NewLabel())
-            , value(0)
+            : name(NewLabel("cstr"))
             , str_value(str_value)
-            , offset(0) {}
+            , type(Type::Const_String)
+            , size(4)
+        {}
 
-        static std::string NewLabel();
+        Symbol(std::string& str_value, Type::ValueType type, int offset = -1);
+
+        Symbol(int v)
+            : name(NewLabel("cint"))
+            , int_value(v)
+            , type(Type::Const_Integer)
+            , size(4)
+        {}
 
         virtual ~Symbol() {};
 
-        const std::string str_val();
+        static std::string NewLabel(const std::string& prefix);
+
+        std::string toString();
 
         void read(); //TODO: for now only read integers, in the future enhance.
 
         std::string name;
-        int value;
         std::string str_value;
+        int int_value;
         int offset;
+        bool bool_value;
+        Type::ValueType type;
+        int size;
+
+        //TODO: add scope to the symbol
 };
 
 #endif //__SYMBOL_H__

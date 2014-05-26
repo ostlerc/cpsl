@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Symbol.h"
+#include "Type.h"
 #include "Expression.h"
 
 class SymbolTable
@@ -23,14 +24,18 @@ class SymbolTable
         Expression* lValue(Symbol* s);
         Symbol* findSymbol(std::string*);
         void add_var(std::string *name);
+        void add_const(std::string *name, Expression* e);
         void add_to_expr_list(Expression* e);
         void add_to_lval_list(Symbol* s);
-        void create_vars(int type);
+        void create_vars(std::string *type_string);
         void read();
         void print();
         void begin();
+        void initialize();
         void end();
         void checkRegisters();
+        void create_symbol(std::string name, int value);
+        void assign(Symbol* s, Expression* e);
         Expression* unimp();
 
     private:

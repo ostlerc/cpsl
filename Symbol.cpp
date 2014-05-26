@@ -4,37 +4,56 @@
 #include "Symbol.h"
 #include "SymbolTable.h"
 #include "Register.h"
+#include "Type.h"
 
 using namespace std;
 
 extern bool bison_verbose;
+extern int yylineno;
 
-std::string Symbol::NewLabel()
+Symbol::Symbol(std::string& str_value, Type::ValueType vt, int offset)
+    : str_value(str_value)
+    , offset(offset)
+    , type(vt)
 {
-    static int at = 0;
-    return "cstr" + to_string(at++);
+    if(offset != -1 && Type::isConst(type))
+    {
+        cerr << "attempt to create symbol with offset with const type on line: " << yylineno << endl;
+        exit(1);
+    }
+
+    string prefix = Type::prefix(type);
+    name = NewLabel(prefix);
 }
 
-const std::string Symbol::str_val()
+std::string Symbol::NewLabel(const string& prefix)
 {
-    if(str_value.length() > 0)
-        return str_value;
-    else
-        return to_string(value);
+    static int at = 0;
+    return prefix + to_string(at++);
 }
 
 void Symbol::read()
 {
     if(bison_verbose)
-        cout << "\treading symbol " << name << endl;
+        cout << "\treading symbol " << toString() << endl;
 
-    cout << "\tli $v0, 5 #read var " << name << endl;
+    cout << "\tli $v0, 5 #read symbol " << toString() << " on line: " << yylineno << endl;
     cout << "\tsyscall" << endl;
 
-    Register *reg = Register::FindRegister(Register::Temp);
-
-    cout << "\tla " << reg->name() << " dat" << endl;
     cout << "\tsw $v0, " << offset << "($gp)" << endl;
+}
 
-    Register::ReleaseRegister(reg);
+string Symbol::toString()
+{
+    string o = Type::toString(type);
+    o += " " + name;
+
+    switch(type)
+    {
+        case Type::Const_Integer:
+            o += " val=" + to_string(int_value);
+    }
+
+    return o;
+    //TODO: show const symbols values here
 }

@@ -42,6 +42,9 @@ extern "C" int yylex();
 
 %type <exprptr> expression
 %type <symptr> lValue;
+%type <str_val> type;
+%type <str_val> simpleType;
+%type <str_val> formalParameter;
 
 %nonassoc ARRAYSYM ELSESYM IFSYM RECORDSYM TOSYM BEGINSYM ELSEIFSYM OFSYM REPEATSYM TYPESYM CHRSYM ENDSYM
 %nonassoc ORDSYM RETURNSYM UNTILSYM CONSTSYM FORSYM PREDSYM STOPSYM VARSYM DOSYM FORWARDSYM PROCEDURESYM
@@ -84,7 +87,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars(0); }
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3); }
             ;
 pOrFDecls: /*empty procedures or function decls*/ { SymbolTable::instance()->begin(); }
          | pOrFDecls pOrFDecl
@@ -100,10 +103,10 @@ functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONO
             ;
 formalParameters: /*empty*/
                 | formalParameter
-                | formalParameters SEMIOSYM formalParameter
+                | formalParameters SEMIOSYM formalParameter { SymbolTable::instance()->create_vars($3); }
                 ;
-formalParameter: VARSYM identList COLONOSYM type
-               | identList COLONOSYM type
+formalParameter: VARSYM identList COLONOSYM type { $$ = $4; }
+               | identList COLONOSYM type { $$ = $3; }
                ;
 body: constDecl typeDecl varDecl block
     ;
@@ -125,35 +128,45 @@ statement: assignment
          | procedureCall
          | nullStatement
          ;
-assignment: lValue ASSIGNOSYM expression
+assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $3); }
           ;
 lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol($1); }
       ;
 lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM
-            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM
+            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM { $3->free(); }
             ;
 lValueList: lValue { SymbolTable::instance()->add_to_lval_list($1); }
           | lValueList COMMAOSYM lValue { SymbolTable::instance()->add_to_lval_list($3); }
           ;
-ifStatement: IFSYM expression THENSYM statementSequence elseifStatement elseStatement ENDSYM
+ifStatement: ifCondition elseifStatement elseStatement ENDSYM
            ;
+ifCondition: ifExpr statementSequence
+           ;
+ifExpr: IFSYM expression THENSYM { $2->free(); }
+      ;
 elseifStatement: /*empty*/
-               | elseifStatement ELSEIFSYM expression THENSYM statementSequence
+               | elseifExpr statementSequence
                ;
+elseifExpr: elseifStatement ELSEIFSYM expression THENSYM { $3->free(); }
+          ;
 elseStatement: /*empty*/
              | ELSESYM statementSequence
              ;
-whileStatement: WHILESYM expression DOSYM statementSequence ENDSYM
+whileStatement: whileExpr statementSequence ENDSYM
               ;
-repeatStatement: REPEATSYM statementSequence UNTILSYM expression
+whileExpr: WHILESYM expression DOSYM  { $2->free(); }
+         ;
+repeatStatement: REPEATSYM statementSequence UNTILSYM expression { $4->free(); }
                ;
-forStatement: FORSYM IDENTSYM ASSIGNOSYM expression TOSYM     expression DOSYM statementSequence ENDSYM
-            | FORSYM IDENTSYM ASSIGNOSYM expression DOWNTOSYM expression DOSYM statementSequence ENDSYM
+forStatement: forExpr statementSequence ENDSYM
             ;
+forExpr: FORSYM IDENTSYM ASSIGNOSYM expression TOSYM     expression DOSYM  { $4->free(); $6->free(); }
+       | FORSYM IDENTSYM ASSIGNOSYM expression DOWNTOSYM expression DOSYM { $4->free(); $6->free(); }
+       ;
 stopStatement: STOPSYM
              ;
-returnStatement: RETURNSYM expression
+returnStatement: RETURNSYM expression { $2->free(); }
                | RETURNSYM
                ;
 readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); SymbolTable::instance()->checkRegisters(); }
@@ -168,18 +181,18 @@ nullStatement: /* empty */
 assignStatements: assignStatement
                 | assignStatements assignStatement
                 ;
-assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
+assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->add_const($1, $3); if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
                ;
 typeStatements: typeStatement
               | typeStatements typeStatement
               ;
 typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) printf("type defined '%s'\n", $1->c_str()); }
              ;
-type: simpleType
-    | recordType
-    | arrayType
+type: simpleType { $$ = $1; }
+    | recordType { $$ = new std::string("0record"); }
+    | arrayType  { $$ = new std::string("0array"); }
     ;
-simpleType: IDENTSYM
+simpleType: IDENTSYM { $$ = $1; }
           ;
 recordType: RECORDSYM recordDecls ENDSYM
           ;
@@ -216,14 +229,14 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | expression FSLASHOSYM expression { $$ = $1->exec($3, Expression::Div); }
           | expression PERCENTOSYM expression { $$ = $1->exec($3, Expression::Mod); }
           | TILDEOSYM expression { $$ = $2->unimp($2); }
-          | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->unimp($2); }
+          | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->exec(Expression::Negate); }
           | LPARENOSYM expression RPARENOSYM { $$ = $2; }
           | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
           | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
           | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
           | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
-          | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
-          | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->unimp($3); }
+          | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Pred); }
+          | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Succ); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
 expressionList: expression { SymbolTable::instance()->add_to_expr_list($1); }
@@ -235,6 +248,6 @@ int yyerror(char* s)
 {
   extern char *yytext;// defined and maintained in lex.cpp
   extern int yylineno;// defined and maintained in lex.cpp
-  printf("ERROR! %s %s line: %d\n", s, yytext, yylineno);
+  std::cerr << "ERROR! " << s << " " << yytext << " line: " << yylineno << std::endl;
   return 0;
 }
