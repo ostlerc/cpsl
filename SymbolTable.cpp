@@ -74,7 +74,12 @@ Expression* SymbolTable::expression_string(string* s)
     if(bison_verbose)
         cout << "expression_string '" << *s << "'" << endl;
 
-    //TODO: find similar string names so there are no duplicates in data section
+    for(unsigned int i = 0; i < c_symbols.size(); i++)
+    {
+        if(c_symbols[i]->str_value == *s && c_symbols[i]->type == Type::Const_String)
+            return new Expression(c_symbols[i]);
+    }
+
     Symbol *sym = new Symbol(*s);
     c_symbols.push_back(sym);
     return new Expression(sym);
@@ -122,6 +127,12 @@ Expression* SymbolTable::expression_char(string* s)
         }
     }
 
+    for(unsigned int i = 0; i < c_symbols.size(); i++)
+    {
+        if(c_symbols[i]->char_value == c && c_symbols[i]->type == Type::Const_Char)
+            return new Expression(c_symbols[i]);
+    }
+
     Symbol *sym = new Symbol(c, *s);
     c_symbols.push_back(sym);
     return new Expression(sym);
@@ -162,7 +173,6 @@ void SymbolTable::create_vars(std::string *type_string)
 
     names += ")";
 
-    //TODO: int->str
     cout << "\t.space " << size << names << " +" << cur_offset << endl;
 
     var_list.clear();

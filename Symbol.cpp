@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <map>
 
 #include "Symbol.h"
 #include "SymbolTable.h"
@@ -40,8 +41,10 @@ Symbol::Symbol(Symbol* s)
 
 std::string Symbol::NewLabel(const string& prefix)
 {
-    static int at = 0;
-    return prefix + to_string(at++);
+    static map<string, int> m;
+    if(!m.count(prefix))
+        m[prefix] = 0;
+    return prefix + to_string(m[prefix]++);
 }
 
 void Symbol::read()
