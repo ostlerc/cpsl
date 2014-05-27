@@ -124,7 +124,6 @@ string Symbol::toString()
     }
 
     return o;
-    //TODO: show const symbols values here
 }
 
 void Symbol::store()

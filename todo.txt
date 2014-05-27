@@ -1,5 +1,5 @@
 make_shared pointers
-improve type system
-finish all expressions
-chr
-ord
+x improve type system
+x finish all expressions
+x chr
+x ord

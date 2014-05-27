@@ -68,6 +68,7 @@ extern "C" int yylex();
 %left PERCENTOSYM
 %right TILDEOSYM
 %right UMINUSOSYM
+%right UTILDEOSYM
 %nonassoc LPARENOSYM
 %nonassoc RPARENOSYM
 
@@ -215,8 +216,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | CHAROSYM { $$ = SymbolTable::instance()->expression_char($1); }
           | STROSYM { $$ = SymbolTable::instance()->expression_string($1); }
           /*| IDENTSYM covered by lValue*/
-          | expression BAROSYM expression { $$ = $1->unimp($3); }
-          | expression AMPOSYM expression { $$ = $1->unimp($3); }
+          | expression BAROSYM expression { $$ = $1->exec($3, Expression::Bar); }
+          | expression AMPOSYM expression { $$ = $1->exec($3, Expression::Amp); }
           | expression EQOSYM expression { $$ = $1->exec($3, Expression::Eq); }
           | expression NEOSYM expression { $$ = $1->exec($3, Expression::Ne); }
           | expression LTEOSYM expression { $$ = $1->exec($3, Expression::Lte); }
@@ -228,11 +229,11 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | expression STAROSYM expression { $$ = $1->exec($3, Expression::Mul); }
           | expression FSLASHOSYM expression { $$ = $1->exec($3, Expression::Div); }
           | expression PERCENTOSYM expression { $$ = $1->exec($3, Expression::Mod); }
-          | TILDEOSYM expression { $$ = $2->unimp($2); }
+          | TILDEOSYM expression %prec UTILDEOSYM { $$ = $2->exec(Expression::Tilde); }
           | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->exec(Expression::Negate); }
           | LPARENOSYM expression RPARENOSYM { $$ = $2; }
-          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
-          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->unimp(); }
+          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); /* function call */ }
+          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->unimp(); /* function call (args) */ }
           | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Chr); }
           | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Ord); }
           | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Pred); }

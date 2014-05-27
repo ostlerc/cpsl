@@ -44,10 +44,18 @@ string Expression::toString(Operation op)
               return "succ";
         case Pred:
               return "pred";
+        case Negate:
+              return "negate";
         case Chr:
               return "chr";
         case Ord:
               return "ord";
+        case Bar:
+              return "bar";
+        case Amp:
+              return "amp";
+        case Tilde:
+              return "tilde";
         default:
               cerr << "Unknown op " << op << " in function " << __FUNCTION__ << " line: " << yylineno << endl;
               exit(1);
@@ -137,6 +145,12 @@ Expression* Expression::exec(Expression* e, Operation op)
             case Gte:
                 setVal(lhs_v >= rhs_v);
                 break;
+            case Bar:
+                setVal(lhs_v | rhs_v);
+                break;
+            case Amp:
+                setVal(lhs_v & rhs_v);
+                break;
             default:
                 {
                     cerr << "unsupported binary operator " << op << " line: " << yylineno << endl;
@@ -178,6 +192,8 @@ Expression* Expression::exec(Expression* e, Operation op)
                         case Gt:
                         case Lte:
                         case Gte:
+                        case Bar:
+                        case Amp:
                             e->loadInTemp();
                             rhs_str = e->reg->name();
                             break;
@@ -224,6 +240,12 @@ Expression* Expression::exec(Expression* e, Operation op)
                         break;
                     case Gte:
                         cout << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        break;
+                    case Bar:
+                        cout << "\tor " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        break;
+                    case Amp:
+                        cout << "\tand " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     default:
                         {
@@ -273,10 +295,25 @@ Expression* Expression::exec(Operation op)
         case Negate:
             {
                 if(Type::isConst(symbol->type))
-                    invalidType();
-
-                loadInTemp();
-                cout << "\tneg " << reg->name() << ", " << reg->name() << " #negate " << symbol->name << " on line: " << yylineno << endl;
+                {
+                    switch(symbol->type)
+                    {
+                        case Type::Const_Integer:
+                            symbol->int_value = -symbol->int_value;
+                            break;
+                        case Type::Const_Bool:
+                            symbol->bool_value = -symbol->bool_value;
+                            break;
+                        default:
+                            invalidType(op);
+                            break;
+                    }
+                }
+                else
+                {
+                    loadInTemp();
+                    cout << "\tneg " << reg->name() << ", " << reg->name() << " #negate " << symbol->name << " on line: " << yylineno << endl;
+                }
             }
             break;
         case Chr:
@@ -284,6 +321,30 @@ Expression* Expression::exec(Operation op)
             if(bison_verbose)
                 cout << "setting type for " << toString() << " on line: " << yylineno << endl;
             setType(op);
+            break;
+        case Tilde:
+            {
+                if(Type::isConst(symbol->type))
+                {
+                    switch(symbol->type)
+                    {
+                        case Type::Const_Integer:
+                            symbol->int_value = ~symbol->int_value;
+                            break;
+                        case Type::Const_Bool:
+                            symbol->bool_value = ~symbol->bool_value;
+                            break;
+                        default:
+                            invalidType(op);
+                            break;
+                    }
+                }
+                else
+                {
+                    loadInTemp();
+                    cout << "\tnot " << reg->name() << ", " << reg->name() << " #bitwise NOT " << symbol->name << " on line: " << yylineno << endl;
+                }
+            }
             break;
         default:
             {
@@ -295,9 +356,9 @@ Expression* Expression::exec(Operation op)
     return this;
 }
 
-void Expression::invalidType()
+void Expression::invalidType(Operation op)
 {
-    cerr << "invalid type in expression on line: " << yylineno << endl;
+    cerr << "invalid operation (" << toString(op) << " for " << toString() << " on line: " << yylineno << endl;
     exit(1);
 }
 

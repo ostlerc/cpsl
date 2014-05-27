@@ -39,7 +39,10 @@ class Expression
             Pred,
             Negate,
             Chr,
-            Ord
+            Ord,
+            Bar,
+            Amp,
+            Tilde
         };
 
         Expression* exec(Expression* e, Operation op);
@@ -52,7 +55,7 @@ class Expression
         void loadInTemp();
         void free(); //release temporary register
 
-        void invalidType();
+        void invalidType(Operation op);
         void setType(Operation op);
 
     private:
