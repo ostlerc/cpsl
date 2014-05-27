@@ -146,6 +146,7 @@ Symbol* SymbolTable::findSymbol(string* s)
 void SymbolTable::create_vars(std::string *type_string)
 {
     string names = " #(";
+    int size = 0;
     for(unsigned int i = 0; i < var_list.size(); i++)
     {
         Symbol *s = new Symbol(var_list[i], cur_offset, Type::fromString(*type_string, false));
@@ -154,29 +155,17 @@ void SymbolTable::create_vars(std::string *type_string)
         symbols.push_back(s);
         if(i > 0)
             names += " ";
-        names += var_list[i];// + "[" + cur_offset + "]";
-        cur_offset += 4; //TODO: fix this for types to have size
+        names += var_list[i]; + "[" + to_string(cur_offset) + "]";
+        cur_offset += s->size;
+        size += s->size;
     }
 
     names += ")";
 
     //TODO: int->str
-    cout << "\t.space " << var_list.size() * 4 << names << " +" << cur_offset << endl;
+    cout << "\t.space " << size << names << " +" << cur_offset << endl;
 
     var_list.clear();
-}
-
-//TODO: make this generic with a type instead of always integers
-//also include which scope to create the variable
-void SymbolTable::create_symbol(string name, int value)
-{
-    //TODO: fix this
-    Symbol *s = new Symbol(name, cur_offset, Type::Integer);
-    if(bison_verbose)
-        cout << "creating symbol " << name << " " << s << endl;
-
-    symbols.push_back(s);
-    cur_offset += 4;
 }
 
 void SymbolTable::add_to_expr_list(Expression* e)

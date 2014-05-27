@@ -10,7 +10,7 @@ class Symbol
     public:
         Symbol(std::string& name, int offset, Type::ValueType type)
             : name(name)
-            , offset(offset) 
+            , offset(offset)
             , type(type)
             , size(4) //one address size
         {}

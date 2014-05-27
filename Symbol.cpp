@@ -61,7 +61,7 @@ void Symbol::read()
 
     switch(type)
     {
-        case Type::Integer: 
+        case Type::Integer:
             {
                 cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
                 cout << "\tsyscall" << endl;

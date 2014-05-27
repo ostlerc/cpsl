@@ -34,7 +34,6 @@ class SymbolTable
         void initialize();
         void end();
         void checkRegisters();
-        void create_symbol(std::string name, int value);
         void assign(Symbol* s, Expression* e);
 
         //hackery for now
