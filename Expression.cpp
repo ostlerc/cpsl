@@ -278,6 +278,9 @@ Expression* Expression::exec(Expression* e, Operation op)
 
 Expression* Expression::exec(Operation op)
 {
+    if(bison_verbose)
+        cout << "exec(" << toString(op) << " on line " << yylineno << endl;
+
     switch(op)
     {
         case Pred:
@@ -408,7 +411,7 @@ void Expression::print()
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "($gp)" << endl;
+                    cout << "\tlw $a0, " << symbol->offset << "($gp) # Load " << toString() << endl;
                 }
             }
             break;
@@ -417,11 +420,11 @@ void Expression::print()
                 cout << "\tli $v0 1" << endl;
                 if(reg)
                 {
-                    cout << "\tsne $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
+                    cout << "\tsne $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << " on line " << yylineno << endl;
                 }
                 else
                 {
-                    cout << "\tlb $a0, " << symbol->offset << "($gp)" << endl;
+                    cout << "\tlb $a0, " << symbol->offset << "($gp) # load " << toString() << " on line " << yylineno << endl;
                     cout << "\tsne $a0, $a0, 0 # Boolean var set only to 1 or 0" << endl;
                 }
             }
@@ -435,7 +438,7 @@ void Expression::print()
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "($gp)" << endl;
+                    cout << "\tlw $a0, " << symbol->offset << "($gp) # Load " << toString() << " on line " << yylineno << endl;
                 }
             }
             break;
@@ -448,6 +451,11 @@ void Expression::print()
         case Type::Unknown:
             {
                 //skip unknown for now
+                if(bison_verbose)
+                {
+                    cerr << "unknown type found " << toString() << " on line " << yylineno << endl;
+                    exit(1);
+                }
             }
             break;
         default:
