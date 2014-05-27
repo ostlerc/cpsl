@@ -98,8 +98,9 @@ Type::ValueType Type::fromString(std::string type_string, bool is_const)
             cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
             exit(1);
         }
-        return Unknown;
     }
+
+    return Unknown;
 }
 
 bool Type::isFoldable(ValueType type)

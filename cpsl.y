@@ -10,7 +10,7 @@
 #include "SymbolTable.h"
 
 int bison_verbose = 0;
-int yyerror(char* s);
+int yyerror(const char* s);
 extern "C" int yylex();
 %}
 
@@ -245,7 +245,7 @@ expressionList: expression { SymbolTable::instance()->add_to_expr_list($1); }
           ;
 %%
 
-int yyerror(char* s)
+int yyerror(const char* s)
 {
   extern char *yytext;// defined and maintained in lex.cpp
   extern int yylineno;// defined and maintained in lex.cpp

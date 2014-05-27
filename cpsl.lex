@@ -2,6 +2,7 @@
     char* t = 0; //used for strtol end pointer
 
 %{
+#include <string.h>
 #include <string>
 #include <stdio.h>
 
@@ -10,6 +11,8 @@
 extern "C" int yylex();
 extern int yylineno;
 %}
+
+%option nounput
 
 %%
 \n { ++yylineno; if(verbose) printf("Found newline\n"); } /*after regex*/
