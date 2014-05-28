@@ -154,9 +154,11 @@ elseifExpr: elseifStatement ELSEIFSYM expression THENSYM { $3->free(); }
 elseStatement: /*empty*/
              | ELSESYM statementSequence
              ;
-whileStatement: whileExpr statementSequence ENDSYM
+whileStatement: whileExpr statementSequence ENDSYM { /* jump beginning of while */ }
               ;
-whileExpr: WHILESYM expression DOSYM  { $2->free(); }
+whileExpr: whileHead expression DOSYM  { $2->free(); /* test jump here */ }
+         ;
+whileHead: WHILESYM { /* emit start label here */ }
          ;
 repeatStatement: REPEATSYM statementSequence UNTILSYM expression { $4->free(); }
                ;

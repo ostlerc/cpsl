@@ -273,6 +273,7 @@ Expression* Expression::exec(Expression* e, Operation op)
             break;
     }
 
+    //Should never get here
     return this;
 }
 
@@ -286,31 +287,36 @@ Expression* Expression::exec(Operation op)
         case Pred:
             {
                 Expression *e = new Expression(new Symbol(1));
-                return exec(e, Sub);
+                Expression *e2 = new Expression(new Symbol(symbol));
+                return e2->exec(e, Sub);
             }
             break;
         case Succ:
             {
                 Expression *e = new Expression(new Symbol(1));
-                return exec(e, Add);
+                Expression *e2 = new Expression(new Symbol(symbol));
+                return e2->exec(e, Add);
             }
             break;
         case Negate:
             {
+                Expression *e = new Expression(new Symbol(symbol));
+
                 if(Type::isConst(symbol->type))
                 {
                     switch(symbol->type)
                     {
                         case Type::Const_Integer:
-                            symbol->int_value = -symbol->int_value;
+                            e->symbol->int_value = -symbol->int_value;
                             break;
                         case Type::Const_Bool:
-                            symbol->bool_value = -symbol->bool_value;
+                            e->symbol->bool_value = -symbol->bool_value;
                             break;
                         default:
                             invalidType(op);
                             break;
                     }
+                    return e;
                 }
                 else
                 {
@@ -322,20 +328,25 @@ Expression* Expression::exec(Operation op)
         case Chr:
         case Ord:
             if(bison_verbose)
-                cout << "setting type for " << toString() << " on line: " << yylineno << endl;
-            setType(op);
+            {
+                Expression *e = new Expression(new Symbol(symbol));
+                cout << "setting type for " << e->toString() << " on line: " << yylineno << endl;
+                e->setType(op);
+                return e;
+            }
             break;
         case Tilde:
             {
+                Expression *e = new Expression(new Symbol(symbol));
                 if(Type::isConst(symbol->type))
                 {
                     switch(symbol->type)
                     {
                         case Type::Const_Integer:
-                            symbol->int_value = ~symbol->int_value;
+                            e->symbol->int_value = !symbol->int_value;
                             break;
                         case Type::Const_Bool:
-                            symbol->bool_value = ~symbol->bool_value;
+                            e->symbol->bool_value = !symbol->bool_value;
                             break;
                         default:
                             invalidType(op);
