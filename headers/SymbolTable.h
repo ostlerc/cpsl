@@ -50,9 +50,11 @@ class SymbolTable
         std::string* elseifExpr(Expression *e);
         void elseifStatement(std::string* lbl);
 
+        //for
         std::string* forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
         void forStatement(std::string* lbl);
 
+        //repeat
         std::string* repeatHead();
         void repeatStatement(std::string* lbl, Expression *e);
 

@@ -172,14 +172,8 @@ repeatStatement: repeatHead statementSequence UNTILSYM expression { SymbolTable:
 repeatHead: REPEATSYM { $$ = SymbolTable::instance()->repeatHead(); }
 forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement($2); }
             ;
-forExpr: forAssign TOSYM expression
-       {
-           $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ);
-       }
-       | forAssign DOWNTOSYM expression
-       {
-           $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred);
-       }
+forExpr: forAssign TOSYM     expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ); }
+       | forAssign DOWNTOSYM expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred); }
        ;
 forAssign: IDENTSYM ASSIGNOSYM expression
          {
