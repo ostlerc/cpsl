@@ -26,12 +26,12 @@ SymbolTable* SymbolTable::instance()
     return st;
 }
 
-void SymbolTable::add_const(std::string *name, Expression *exp)
+void SymbolTable::add_symbol(std::string *name, Expression *exp)
 {
     exp->symbol->name = *name;
 
     if(bison_verbose)
-        cout << "adding const symbol " << *name << " " << exp->toString() << endl;
+        cout << "adding symbol " << *name << " " << exp->toString() << endl;
 
     symbols.push_back(exp->symbol);
 }
@@ -235,7 +235,7 @@ void SymbolTable::read()
 void SymbolTable::begin()
 {
     cout << "\t.text" << endl;
-    cout << "main:";
+    cout << "main:\n";
 
     initialize();
 }
@@ -266,15 +266,134 @@ void SymbolTable::end()
         c_symbols[i]->store();
 }
 
-void SymbolTable::assign(Symbol* s, Expression* e)
+Expression* SymbolTable::assign(Symbol* s, Expression* e)
 {
     if(ignore_next_lval)
         ignore_next_lval = false;
     else
         e->assign(s);
+
+    return e;
 }
 
 void SymbolTable::ignoreNextLValue()
 {
     ignore_next_lval = true;
+}
+
+string* SymbolTable::whileStart()
+{
+    string *startLbl = new string(Symbol::GetLabel("WS"));
+    cout <<  *startLbl << ":" << endl;
+    return startLbl;
+}
+
+string* SymbolTable::whileExpr(Expression* e)
+{
+    e->loadInTemp();
+    string *endLbl = new string(Symbol::GetLabel("WE"));
+    cout << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << ".stop # exit 'while' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    stop_stack.push(*endLbl);
+
+    e->free();
+
+    return endLbl;
+}
+
+void SymbolTable::whileStatement(std::string* startLbl, std::string *endLbl)
+{
+    cout << "\tj " << *startLbl << " # end while on line " << yylineno << endl;
+    cout << *endLbl << ".stop:" << endl;
+    stop_stack.pop();
+}
+
+string* SymbolTable::ifExpr(Expression* e)
+{
+    string *endLbl = new string(Symbol::GetLabel("IfE"));
+    cout << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    e->free();
+
+    return endLbl;
+}
+
+void SymbolTable::ifCondition(std::string* endLbl)
+{
+    string endifLbl = Symbol::GetLabel("EIf");
+    cout << "\tj " << endifLbl << " #end 'if' on line " << yylineno << endl;
+    if_stack.push(endifLbl);
+
+    cout << *endLbl << ":" << endl;
+}
+
+void SymbolTable::ifStatement()
+{
+    string lbl = if_stack.top();
+    if_stack.pop();
+    cout << lbl << ":" << " # end of 'if' statement on line " << yylineno << endl;
+}
+
+string* SymbolTable::elseifExpr(Expression *e)
+{
+    string *lbl = new string(Symbol::GetLabel("IfE"));
+    cout << "\tbeq " << e->reg->name() << ", $zero, " << *lbl << " # exit 'elseif' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    e->free();
+    return lbl;
+}
+
+void SymbolTable::elseifStatement(std::string* lbl)
+{
+    cout << "\tj " << if_stack.top() << endl;
+    cout << *lbl << ": " << " # end 'elseif' from line: " << yylineno << endl;
+}
+
+void SymbolTable::stop()
+{
+    string lbl = stop_stack.top();
+    cout << "\tj " << lbl << ".stop # stopping on line " << yylineno << endl;
+}
+
+string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operation op)
+{
+    string *lbl = new string(Symbol::GetLabel("For"));
+    cout << "\tj " << *lbl << ".begin " << endl;
+    cout << *lbl << ".start:" << endl;
+
+    Expression *t = lhs->exec(op);
+    t->store();
+
+    cout << *lbl << ".begin:" << endl;
+    Expression *lt = rhs->exec(lhs, op == Expression::Succ ? Expression::Gte : Expression::Lte);
+    cout << "\tbeq " << lt->reg->name() << ", $zero " << *lbl << ".stop # line " << yylineno << endl;
+    stop_stack.push(*lbl);
+    lt->free();
+
+    lhs->free();
+    rhs->free();
+    t->free();
+
+    return lbl;
+}
+
+void SymbolTable::forStatement(string* lbl)
+{
+    std::cout << "\tj " << *lbl << ".start" << endl;
+    std::cout << *lbl << ".stop: # end for on line " << yylineno << std::endl;
+    stop_stack.pop();
+}
+
+std::string* SymbolTable::repeatHead()
+{
+    string *lbl = new string(Symbol::GetLabel("RS"));
+    cout <<  *lbl << ":" << endl;
+    stop_stack.push(*lbl);
+    return lbl;
+}
+
+void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
+{
+    e->loadInTemp();
+    cout << "\tbeq " << e->reg->name() << ", $zero " << *lbl << "# end repeat statemnt on line " << yylineno << endl;
+    cout << *lbl << ".stop:" << endl;
+    stop_stack.pop();
+    e->free();
 }

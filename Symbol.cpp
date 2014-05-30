@@ -24,7 +24,7 @@ Symbol::Symbol(std::string& str_value, Type::ValueType vt, int offset)
     }
 
     string prefix = Type::prefix(type);
-    name = NewLabel(prefix);
+    name = GetLabel(prefix);
 }
 
 Symbol::Symbol(Symbol* s)
@@ -39,12 +39,15 @@ Symbol::Symbol(Symbol* s)
     size = s->size;
 }
 
-std::string Symbol::NewLabel(const string& prefix)
+std::string Symbol::GetLabel(const string& prefix, bool gen)
 {
     static map<string, int> m;
     if(!m.count(prefix))
         m[prefix] = 0;
-    return prefix + to_string(m[prefix]++);
+    if(gen)
+        return prefix + to_string(m[prefix]++);
+    else
+        return prefix + to_string(m[prefix]-1);
 }
 
 void Symbol::read()
@@ -117,7 +120,7 @@ string Symbol::toString()
             o += string(" val='") + char_value + string("'");
             break;
         case Type::Const_Bool:
-            o += " val=" + bool_value;
+            o += " val=" + to_string(bool_value);
             break;
         default:
             break;

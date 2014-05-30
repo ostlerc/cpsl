@@ -1,4 +1,7 @@
 make_shared pointers
+break
+repeat
+tests
 x improve type system
 x finish all expressions
 x chr

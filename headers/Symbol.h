@@ -16,7 +16,7 @@ class Symbol
         {}
 
         Symbol(std::string& str_value)
-            : name(NewLabel("cstr"))
+            : name(GetLabel("cstr"))
             , str_value(str_value)
             , type(Type::Const_String)
             , size(4) //one address size
@@ -25,14 +25,14 @@ class Symbol
         Symbol(std::string& str_value, Type::ValueType type, int offset = -1);
 
         Symbol(int v)
-            : name(NewLabel("cint"))
+            : name(GetLabel("cint"))
             , int_value(v)
             , type(Type::Const_Integer)
             , size(4)
         {}
 
         Symbol(char c, std::string& s)
-            : name(NewLabel("cchr"))
+            : name(GetLabel("cchr"))
             , str_value(s)
             , char_value(c)
             , type(Type::Const_Char)
@@ -50,7 +50,7 @@ class Symbol
 
         virtual ~Symbol() {};
 
-        static std::string NewLabel(const std::string& prefix);
+        static std::string GetLabel(const std::string& prefix, bool gen = true);
 
         std::string toString();
 

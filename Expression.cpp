@@ -7,6 +7,11 @@ using namespace std;
 extern int yylineno;// defined and maintained in lex.cpp
 extern bool bison_verbose;
 
+Expression::Expression(Expression* e)
+    : symbol(new Symbol(e->symbol))
+    , reg(e->reg)
+{ e->reg = NULL; }
+
 Expression* Expression::unimp(Expression* e)
 {
     return e;
@@ -81,12 +86,13 @@ Expression* Expression::exec(Expression* e, Operation op)
             rhs_v = e->symbol->char_value;
             break;
         case Type::Unknown:
-            return this; //skip unknown types for now
+            //return this; //skip unknown types for now
         default:
             cerr << "unhandled (rhs) type error on line " << yylineno << " " << e->toString() << "-" << e->toString() << endl;
+            exit(1);
     }
 
-    if(canFold(e))
+    if(canFold(op) && canFold(e))
     {
         int lhs_v = 0;
         switch(symbol->type)
@@ -146,10 +152,10 @@ Expression* Expression::exec(Expression* e, Operation op)
                 setVal(lhs_v >= rhs_v);
                 break;
             case Bar:
-                setVal(lhs_v | rhs_v);
+                setVal(lhs_v || rhs_v);
                 break;
             case Amp:
-                setVal(lhs_v & rhs_v);
+                setVal(lhs_v && rhs_v);
                 break;
             default:
                 {
@@ -199,7 +205,7 @@ Expression* Expression::exec(Expression* e, Operation op)
                             break;
                         default:
                             {
-                                cerr << "Incorrect binary operator on line " << yylineno << endl;
+                                cerr << "Incorrect binary operator " << toString() << " " << toString(op) << " on line " << yylineno << endl;
                                 exit(1);
                             }
                     }
@@ -249,7 +255,7 @@ Expression* Expression::exec(Expression* e, Operation op)
                         break;
                     default:
                         {
-                            cerr << "Incorrect binary operator on line " << yylineno << endl;
+                            cerr << "Incorrect binary operator " << toString() << " " << toString(op) << " on line " << yylineno << endl;
                             exit(1);
                         }
                 }
@@ -257,10 +263,8 @@ Expression* Expression::exec(Expression* e, Operation op)
                 if(e->reg)
                     e->free();
 
-                Expression *exp = new Expression(new Symbol(symbol));
-                exp->reg = reg;
-                exp->setType(op);
-                reg = NULL;
+                Expression *exp = new Expression(this);
+                exp->setType(op, false); //not const since we couldn't fold
 
                 return exp;
             }
@@ -280,27 +284,27 @@ Expression* Expression::exec(Expression* e, Operation op)
 Expression* Expression::exec(Operation op)
 {
     if(bison_verbose)
-        cout << "exec(" << toString(op) << " on line " << yylineno << endl;
+        cout << "exec(" << toString(op) << ") for expr " << toString() << " on line " << yylineno << endl;
 
     switch(op)
     {
         case Pred:
             {
                 Expression *e = new Expression(new Symbol(1));
-                Expression *e2 = new Expression(new Symbol(symbol));
+                Expression *e2 = new Expression(this);
                 return e2->exec(e, Sub);
             }
             break;
         case Succ:
             {
                 Expression *e = new Expression(new Symbol(1));
-                Expression *e2 = new Expression(new Symbol(symbol));
+                Expression *e2 = new Expression(this);
                 return e2->exec(e, Add);
             }
             break;
         case Negate:
             {
-                Expression *e = new Expression(new Symbol(symbol));
+                Expression *e = new Expression(this);
 
                 if(Type::isConst(symbol->type))
                 {
@@ -327,17 +331,15 @@ Expression* Expression::exec(Operation op)
             break;
         case Chr:
         case Ord:
-            if(bison_verbose)
             {
-                Expression *e = new Expression(new Symbol(symbol));
-                cout << "setting type for " << e->toString() << " on line: " << yylineno << endl;
+                Expression *e = new Expression(this);
                 e->setType(op);
                 return e;
             }
             break;
         case Tilde:
             {
-                Expression *e = new Expression(new Symbol(symbol));
+                Expression *e = new Expression(this);
                 if(Type::isConst(symbol->type))
                 {
                     switch(symbol->type)
@@ -362,7 +364,7 @@ Expression* Expression::exec(Operation op)
             break;
         default:
             {
-                cerr << "Unsupported unary expression operator " << op << " line: " << yylineno << endl;
+                cerr << "Unsupported unary expression operator " << toString(op) << " " << toString() << " on line: " << yylineno << endl;
                 exit(1);
             }
     }
@@ -378,9 +380,24 @@ void Expression::invalidType(Operation op)
 
 bool Expression::canFold(Expression* e)
 {
-
     return Type::isConst(symbol->type) && Type::isConst(e->symbol->type) &&
            Type::isFoldable(symbol->type) && Type::isFoldable(e->symbol->type);
+}
+
+bool Expression::canFold(Operation op)
+{
+    switch(op)
+    {
+        case Add:
+        case Sub:
+        case Mul:
+        case Div:
+        case Mod:
+            return true;
+        default:
+            return false;
+            break;
+    }
 }
 
 string Expression::toString()
@@ -505,10 +522,15 @@ void Expression::loadInTemp()
             }
             break;
         case Type::Const_Integer:
-        case Type::Const_Bool:
             {
                 cout << "\tli " << reg->name() << ", " << symbol->int_value
                     << "#Loading const integer into reg " << reg->name() << " on line: " << yylineno << endl;
+            }
+            break;
+        case Type::Const_Bool:
+            {
+                cout << "\tli " << reg->name() << ", " << symbol->bool_value
+                    << "#Loading const bool into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_String:
@@ -545,11 +567,30 @@ void Expression::free()
     }
 }
 
+void Expression::store()
+{
+    if(!reg)
+        return;
+    switch(symbol->type)
+    {
+        case Type::Bool:
+        case Type::Char:
+        {
+            cout << "\tsb " << reg->name() << ", " << symbol->offset << "($gp) #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+        }
+        break;
+        default:
+        {
+            cout << "\tsw " << reg->name() << ", " << symbol->offset << "($gp) #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+        }
+    }
+}
+
 void Expression::assign(Symbol* s)
 {
     if(!Type::match(symbol->type, s->type))
     {
-        cerr << "Expression type mismatch: " 
+        cerr << "Expression type mismatch: "
             << toString() << "-"
             << s->toString() << " on line " << yylineno << endl;
         exit(1);
@@ -582,12 +623,21 @@ void Expression::assign(Symbol* s)
         break;
     }
 
+    symbol = new Symbol(s);
+
+    if(bison_verbose)
+        cout << "assigned" << toString() << endl;
+
     Register::ReleaseRegister(reg);
     reg = NULL;
 }
 
-void Expression::setType(Operation op)
+void Expression::setType(Operation op, bool isConst)
 {
+    if(bison_verbose)
+        cout << "setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
+
+    Type::ValueType t = Type::Unknown;
     switch(op)
     {
         case Add:
@@ -595,7 +645,8 @@ void Expression::setType(Operation op)
         case Mul:
         case Div:
         case Mod:
-            symbol->setType(Type::Integer);
+        case Ord:
+            t = Type::Integer;
             break;
         case Eq:
         case Ne:
@@ -603,17 +654,25 @@ void Expression::setType(Operation op)
         case Gt:
         case Lte:
         case Gte:
-            symbol->setType(Type::Bool);
+        case Bar:
+        case Amp:
+        case Tilde:
+            t = Type::Bool;
             break;
         case Chr:
-            symbol->setType(Type::Char);
-            break;
-        case Ord:
-            symbol->setType(Type::Integer);
+            t = Type::Char;
             break;
         default:
             break;
     }
+
+    if(Type::isConst(symbol->type) && isConst)
+        t = Type::const_val(t);
+
+    symbol->setType(t);
+
+    if(bison_verbose)
+        cout << "after setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
 }
 
 void Expression::setVal(int v)
@@ -629,7 +688,7 @@ void Expression::setVal(int v)
         case Type::Const_Bool:
             symbol->bool_value = v == 0 ? false : true;
             break;
-        case Type::Char:
+        case Type::Const_Char:
             symbol->char_value = (char)v;
             break;
         default:

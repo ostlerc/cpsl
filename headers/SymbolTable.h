@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <stack>
 
 #include "Symbol.h"
 #include "Type.h"
@@ -24,7 +25,7 @@ class SymbolTable
         Expression* lValue(Symbol* s);
         Symbol* findSymbol(std::string*);
         void add_var(std::string *name);
-        void add_const(std::string *name, Expression* e);
+        void add_symbol(std::string *name, Expression* e);
         void add_to_expr_list(Expression* e);
         void add_to_lval_list(Symbol* s);
         void create_vars(std::string *type_string);
@@ -34,7 +35,26 @@ class SymbolTable
         void initialize();
         void end();
         void checkRegisters();
-        void assign(Symbol* s, Expression* e);
+        Expression* assign(Symbol* s, Expression* e);
+
+        //while
+        std::string* whileStart();
+        std::string* whileExpr(Expression* e);
+        void whileStatement(std::string* startLbl, std::string *endLbl);
+        void stop();
+
+        //if
+        std::string* ifExpr(Expression* e);
+        void ifCondition(std::string* endLbl);
+        void ifStatement();
+        std::string* elseifExpr(Expression *e);
+        void elseifStatement(std::string* lbl);
+
+        std::string* forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
+        void forStatement(std::string* lbl);
+
+        std::string* repeatHead();
+        void repeatStatement(std::string* lbl, Expression *e);
 
         //hackery for now
         Expression* unimp();
@@ -46,6 +66,9 @@ class SymbolTable
         std::vector<Symbol*> symbols;
         std::vector<Symbol*> c_symbols; //used to write out const string data at end of program
         std::vector<Symbol*> lval_list; //used to store the list of lvals about to be acted on
+
+        std::stack<std::string> if_stack; //labels to keep track of
+        std::stack<std::string> stop_stack; //start labels to keep track of in case of stoppage
         int cur_offset;
         bool ignore_next_lval;
 };

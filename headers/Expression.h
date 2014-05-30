@@ -16,6 +16,8 @@ class Expression
             , reg(NULL)
         {}
 
+        Expression(Expression* e);
+
         virtual ~Expression() {}
 
         Expression* unimp(Expression* e);
@@ -56,13 +58,15 @@ class Expression
         void free(); //release temporary register
 
         void invalidType(Operation op);
-        void setType(Operation op);
+        void setType(Operation op, bool isConst = true);
+        void store();
 
     private:
 
         std::string toString(Operation op);
 
         bool canFold(Expression* e);
+        bool canFold(Operation op);
         void setVal(int);
         std::string typeName();
 

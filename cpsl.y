@@ -11,6 +11,7 @@
 
 int bison_verbose = 0;
 int yyerror(const char* s);
+extern int yylineno;
 extern "C" int yylex();
 %}
 
@@ -45,6 +46,13 @@ extern "C" int yylex();
 %type <str_val> type;
 %type <str_val> simpleType;
 %type <str_val> formalParameter;
+%type <str_val> whileHead; /*return start label*/
+%type <str_val> whileExpr; /*return end label*/
+%type <str_val> ifExpr;    /*return end label*/
+%type <str_val> elseifExpr;
+%type <exprptr> forAssign;
+%type <str_val> forExpr;
+%type <str_val> repeatHead;
 
 %nonassoc ARRAYSYM ELSESYM IFSYM RECORDSYM TOSYM BEGINSYM ELSEIFSYM OFSYM REPEATSYM TYPESYM CHRSYM ENDSYM
 %nonassoc ORDSYM RETURNSYM UNTILSYM CONSTSYM FORSYM PREDSYM STOPSYM VARSYM DOSYM FORWARDSYM PROCEDURESYM
@@ -53,6 +61,7 @@ extern "C" int yylex();
 %nonassoc COMMAOSYM
 %nonassoc COLONOSYM
 
+%right TILDEOSYM
 %left BAROSYM
 %left AMPOSYM
 %left EQOSYM
@@ -66,9 +75,7 @@ extern "C" int yylex();
 %left STAROSYM
 %left FSLASHOSYM
 %left PERCENTOSYM
-%right TILDEOSYM
 %right UMINUSOSYM
-%right UTILDEOSYM
 %nonassoc LPARENOSYM
 %nonassoc RPARENOSYM
 
@@ -140,34 +147,47 @@ lValueHelper: /*empty*/
 lValueList: lValue { SymbolTable::instance()->add_to_lval_list($1); }
           | lValueList COMMAOSYM lValue { SymbolTable::instance()->add_to_lval_list($3); }
           ;
-ifStatement: ifCondition elseifStatement elseStatement ENDSYM
+ifStatement: ifCondition elseifStatement elseStatement ENDSYM { SymbolTable::instance()->ifStatement(); }
            ;
-ifCondition: ifExpr statementSequence
+ifCondition: ifExpr statementSequence { SymbolTable::instance()->ifCondition($1); }
            ;
-ifExpr: IFSYM expression THENSYM { $2->free(); }
+ifExpr: IFSYM expression THENSYM { $$ = SymbolTable::instance()->ifExpr($2); }
       ;
 elseifStatement: /*empty*/
-               | elseifExpr statementSequence
+               | elseifExpr statementSequence { SymbolTable::instance()->elseifStatement($1); }
                ;
-elseifExpr: elseifStatement ELSEIFSYM expression THENSYM { $3->free(); }
+elseifExpr: elseifStatement ELSEIFSYM expression THENSYM { $$ = SymbolTable::instance()->elseifExpr($3); }
           ;
 elseStatement: /*empty*/
              | ELSESYM statementSequence
              ;
-whileStatement: whileExpr statementSequence ENDSYM { /* jump beginning of while */ }
+whileStatement: whileHead whileExpr statementSequence ENDSYM { SymbolTable::instance()->whileStatement($1, $2); }
               ;
-whileExpr: whileHead expression DOSYM  { $2->free(); /* test jump here */ }
+whileExpr: expression DOSYM { $$ = SymbolTable::instance()->whileExpr($1); }
          ;
-whileHead: WHILESYM { /* emit start label here */ }
+whileHead: WHILESYM { $$ = SymbolTable::instance()->whileStart(); }
          ;
-repeatStatement: REPEATSYM statementSequence UNTILSYM expression { $4->free(); }
+repeatStatement: repeatHead statementSequence UNTILSYM expression { SymbolTable::instance()->repeatStatement($1, $4); }
                ;
-forStatement: forExpr statementSequence ENDSYM
+repeatHead: REPEATSYM { $$ = SymbolTable::instance()->repeatHead(); }
+forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement($2); }
             ;
-forExpr: FORSYM IDENTSYM ASSIGNOSYM expression TOSYM     expression DOSYM  { $4->free(); $6->free(); }
-       | FORSYM IDENTSYM ASSIGNOSYM expression DOWNTOSYM expression DOSYM { $4->free(); $6->free(); }
+forExpr: forAssign TOSYM expression
+       {
+           $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ);
+       }
+       | forAssign DOWNTOSYM expression
+       {
+           $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred);
+       }
        ;
-stopStatement: STOPSYM
+forAssign: IDENTSYM ASSIGNOSYM expression
+         {
+             Symbol*s = SymbolTable::instance()->findSymbol($1);
+             $$ = SymbolTable::instance()->assign(s, $3);
+         }
+         ;
+stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
              ;
 returnStatement: RETURNSYM expression { $2->free(); }
                | RETURNSYM
@@ -184,7 +204,7 @@ nullStatement: /* empty */
 assignStatements: assignStatement
                 | assignStatements assignStatement
                 ;
-assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->add_const($1, $3); if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
+assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->add_symbol($1, $3); if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
                ;
 typeStatements: typeStatement
               | typeStatements typeStatement
@@ -231,7 +251,7 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | expression STAROSYM expression { $$ = $1->exec($3, Expression::Mul); }
           | expression FSLASHOSYM expression { $$ = $1->exec($3, Expression::Div); }
           | expression PERCENTOSYM expression { $$ = $1->exec($3, Expression::Mod); }
-          | TILDEOSYM expression %prec UTILDEOSYM { $$ = $2->exec(Expression::Tilde); }
+          | TILDEOSYM expression { $$ = $2->exec(Expression::Tilde); }
           | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->exec(Expression::Negate); }
           | LPARENOSYM expression RPARENOSYM { $$ = $2; }
           | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); /* function call */ }

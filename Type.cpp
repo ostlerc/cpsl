@@ -115,7 +115,6 @@ bool Type::isFoldable(ValueType type)
         case Integer:
         case Char:
         case Bool:
-            return false;
         case Unknown:
             return false;
         default:
