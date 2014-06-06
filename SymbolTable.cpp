@@ -158,17 +158,19 @@ void SymbolTable::create_vars(std::string *type_string)
 {
     string names = " #(";
     int size = 0;
+    Type::ValueType type = Type::fromString(*type_string, false);
+
     for(unsigned int i = 0; i < var_list.size(); i++)
     {
-        Symbol *s = new Symbol(var_list[i], cur_offset, Type::fromString(*type_string, false));
+        Symbol *s = new Symbol(var_list[i], cur_offset, type);
         if(bison_verbose)
             cout << "created symbol " << " " << s->toString() << endl;
         symbols.push_back(s);
         if(i > 0)
             names += " ";
         names += var_list[i]; + "[" + to_string(cur_offset) + "]";
-        cur_offset += s->size;
-        size += s->size;
+        cur_offset += 4;
+        size += 4;
     }
 
     names += ")";
@@ -257,13 +259,17 @@ void SymbolTable::end()
 {
     cout << "\tli $v0, 10" << endl;
     cout << "\tsyscall" << endl;
-    cout << "\t.data" << endl;
 
-    if(bison_verbose)
-        cout << "there are " << c_symbols.size() << " constant string entries to add" << endl;
+    if(c_symbols.size() > 0)
+    {
+        cout << "\t.data" << endl;
 
-    for(unsigned int i = 0; i < c_symbols.size(); i++)
-        c_symbols[i]->store();
+        if(bison_verbose)
+            cout << "there are " << c_symbols.size() << " constant string entries to add" << endl;
+
+        for(unsigned int i = 0; i < c_symbols.size(); i++)
+            c_symbols[i]->store();
+    }
 }
 
 Expression* SymbolTable::assign(Symbol* s, Expression* e)
@@ -396,4 +402,24 @@ void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
     cout << *lbl << ".stop:" << endl;
     stop_stack.pop();
     e->free();
+}
+
+void SymbolTable::procedureHead()
+{
+    cout << endl << "######################" << endl;
+    cout << "\t.data" << endl;
+}
+
+void SymbolTable::procedureParams(string* id)
+{
+    cout << "proc." << *id << ":";
+    if(bison_verbose)
+        cout << " #declaring procedure on line " << yylineno;
+    cout << endl;
+}
+
+void SymbolTable::endProcedure()
+{
+    cout << "\tj $ra" << endl;
+    cout << "######################" << endl << endl;
 }

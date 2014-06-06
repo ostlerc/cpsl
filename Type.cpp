@@ -74,7 +74,7 @@ string Type::prefix(ValueType vt)
     }
 }
 
-Type::ValueType Type::fromString(std::string type_string, bool is_const)
+auto Type::fromString(std::string type_string, bool is_const) -> ValueType
 {
     if(type_string == "integer" || type_string == "INTEGER")
         return is_const ? Const_Integer : Integer;
@@ -135,7 +135,7 @@ bool Type::match(ValueType lhs, ValueType rhs)
     return true;
 }
 
-Type::ValueType Type::nonconst_val(ValueType type)
+auto Type::nonconst_val(ValueType type) -> ValueType
 {
     if(!isConst(type))
         return type;
@@ -163,7 +163,7 @@ Type::ValueType Type::nonconst_val(ValueType type)
     }
 }
 
-Type::ValueType Type::const_val(ValueType type)
+auto Type::const_val(ValueType type) -> ValueType
 {
     if(isConst(type))
         return type;

@@ -14,6 +14,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -ggdb")
 set(cpsl_srcs
   main.cpp
   SymbolTable.cpp
+  SymbolTableLevel.cpp
   Expression.cpp
   Register.cpp
   Symbol.cpp
@@ -25,6 +26,7 @@ set(cpsl_srcs
 
 set(cpsl_headers
     headers/SymbolTable.h
+    headers/SymbolTableLevel.h
     headers/Symbol.h
     headers/Expression.h
     headers/Register.h

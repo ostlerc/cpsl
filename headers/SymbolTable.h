@@ -62,6 +62,10 @@ class SymbolTable
         Expression* unimp();
         void ignoreNextLValue();
 
+        void procedureHead();
+        void procedureParams(std::string* id);
+        void endProcedure();
+
     private:
         std::vector<Expression*> expr_list;
         std::vector<std::string> var_list;

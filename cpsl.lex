@@ -13,6 +13,7 @@ extern int yylineno;
 %}
 
 %option nounput
+%option yylineno
 
 %%
 \n { ++yylineno; if(verbose) printf("Found newline\n"); } /*after regex*/

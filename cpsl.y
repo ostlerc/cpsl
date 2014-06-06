@@ -81,7 +81,7 @@ extern "C" int yylex();
 
 %%
 
-program: constDecl typeDecl varDecl pOrFDecls block DOTOSYM { SymbolTable::instance()->end(); }
+program: constDecl typeDecl varDecl pOrFDecls programBlock DOTOSYM { SymbolTable::instance()->end(); }
        ;
 constDecl: /*empty*/
          | CONSTSYM assignStatements
@@ -97,14 +97,18 @@ varStatements: varStatements varStatement
              ;
 varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3); }
             ;
-pOrFDecls: /*empty procedures or function decls*/ { SymbolTable::instance()->begin(); }
+pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
          ;
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM FORWARDSYM SEMIOSYM
-             | PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM body SEMIOSYM
+procedureDecl: procedureHead procedureParams FORWARDSYM SEMIOSYM
+             | procedureHead procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
+             ;
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { SymbolTable::instance()->procedureParams($1); }
+               ;
+procedureHead: PROCEDURESYM { SymbolTable::instance()->procedureHead(); }
              ;
 functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
@@ -118,7 +122,10 @@ formalParameter: VARSYM identList COLONOSYM type { $$ = $4; }
                ;
 body: constDecl typeDecl varDecl block
     ;
-
+programHead: BEGINSYM { SymbolTable::instance()->begin(); }
+           ;
+programBlock: programHead statementSequence ENDSYM
+            ;
 block: BEGINSYM statementSequence ENDSYM
      ;
 statementSequence: statementSequence SEMIOSYM statement

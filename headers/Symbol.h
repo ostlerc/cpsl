@@ -8,27 +8,26 @@
 class Symbol
 {
     public:
-        Symbol(std::string& name, int offset, Type::ValueType type)
+        Symbol(std::string& name, int offset, Type::ValueType type, bool global = true)
             : name(name)
             , offset(offset)
             , type(type)
-            , size(4) //one address size
+            , global(global)
         {}
 
+        //const constructors
         Symbol(std::string& str_value)
             : name(GetLabel("cstr"))
             , str_value(str_value)
             , type(Type::Const_String)
-            , size(4) //one address size
+            , global(true)
         {}
-
-        Symbol(std::string& str_value, Type::ValueType type, int offset = -1);
 
         Symbol(int v)
             : name(GetLabel("cint"))
             , int_value(v)
             , type(Type::Const_Integer)
-            , size(4)
+            , global(true)
         {}
 
         Symbol(char c, std::string& s)
@@ -36,14 +35,14 @@ class Symbol
             , str_value(s)
             , char_value(c)
             , type(Type::Const_Char)
-            , size(1)
+            , global(true)
         {}
 
         Symbol(const std::string& name, bool b)
             : name(name)
             , bool_value(b)
             , type(Type::Const_Bool)
-            , size(1)
+            , global(true)
         {}
 
         Symbol(Symbol* s);
@@ -65,9 +64,7 @@ class Symbol
         bool bool_value;
         char char_value;
         Type::ValueType type;
-        int size;
-
-        //TODO: add scope to the symbol
+        bool global;
 };
 
 #endif //__SYMBOL_H__

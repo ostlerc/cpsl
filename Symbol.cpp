@@ -12,21 +12,6 @@ using namespace std;
 extern bool bison_verbose;
 extern int yylineno;
 
-Symbol::Symbol(std::string& str_value, Type::ValueType vt, int offset)
-    : str_value(str_value)
-    , offset(offset)
-    , type(vt)
-{
-    if(offset != -1 && Type::isConst(type))
-    {
-        cerr << "attempt to create symbol with offset with const type on line: " << yylineno << endl;
-        exit(1);
-    }
-
-    string prefix = Type::prefix(type);
-    name = GetLabel(prefix);
-}
-
 Symbol::Symbol(Symbol* s)
 {
     name = s->name;
@@ -36,7 +21,7 @@ Symbol::Symbol(Symbol* s)
     char_value = s->char_value;
     offset = s->offset;
     type = s->type;
-    size = s->size;
+    global = s->global;
 }
 
 std::string Symbol::GetLabel(const string& prefix, bool gen)
