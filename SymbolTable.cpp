@@ -334,8 +334,8 @@ void SymbolTable::elseifStatement(std::string* lbl)
 
 void SymbolTable::stop()
 {
-    string lbl = stop_stack.top();
-    cout << "\tj " << lbl << ".stop # stopping on line " << yylineno << endl;
+    cout << "\tli $v0, 10 # stopping on line " << yylineno << endl;
+    cout << "\tsyscall" << endl;
 }
 
 string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operation op)
@@ -388,10 +388,12 @@ void SymbolTable::procedureHead()
 {
     cout << endl << "######################" << endl;
     cout << "\t.data" << endl;
+    enterScope();
 }
 
 void SymbolTable::procedureParams(string* id)
 {
+    cout << "\t.text" << endl;
     cout << "proc." << *id << ":";
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
@@ -400,8 +402,9 @@ void SymbolTable::procedureParams(string* id)
 
 void SymbolTable::endProcedure()
 {
-    cout << "\tj $ra" << endl;
+    cout << "\tjr $ra" << endl;
     cout << "######################" << endl << endl;
+    exitScope();
 }
 
 void SymbolTable::enterScope()
@@ -412,4 +415,9 @@ void SymbolTable::enterScope()
 void SymbolTable::exitScope()
 {
     levels.pop_back();
+}
+
+void SymbolTable::callProc(std::string* proc)
+{
+    cout << "\tjal proc." << *proc << " # calling procedure on line " << yylineno << endl;
 }

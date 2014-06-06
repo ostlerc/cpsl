@@ -37,10 +37,20 @@ void SymbolTableLevel::addVariable(std::string id, Type::ValueType type)
 
     if(!Type::isConst(type))
     {
-        offset += 4*(globalScope ? 1: -1);
-        cout << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
-    }
 
+        if(globalScope)
+        {
+            offset += size;
+            cout << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
+        }
+        else
+        {
+            offset -= size;
+            //TODO: make this in prologue
+            cout << "\tadd $sp $sp " << -size << " # " << id << "(" << offset << ") on line " << yylineno << endl;
+        }
+    }
+    
     variables[id] = sym;
 }
 

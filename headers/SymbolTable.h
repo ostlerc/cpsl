@@ -69,6 +69,7 @@ class SymbolTable
         void procedureHead();
         void procedureParams(std::string* id);
         void endProcedure();
+        void callProc(std::string* proc);
 
     private:
         std::vector<Expression*> expr_list;

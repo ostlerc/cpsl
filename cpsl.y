@@ -197,8 +197,8 @@ readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance(
              ;
 writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print(); }
               ;
-procedureCall: IDENTSYM LPARENOSYM RPARENOSYM
-             | IDENTSYM LPARENOSYM expressionList RPARENOSYM
+procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc($1); /* function call */ }
+             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->unimp(); /* function call */ }
              ;
 nullStatement: /* empty */
              ;

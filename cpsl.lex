@@ -16,7 +16,7 @@ extern int yylineno;
 %option yylineno
 
 %%
-\n { ++yylineno; if(verbose) printf("Found newline\n"); } /*after regex*/
+\n { if(verbose) printf("Found newline\n"); } /*after regex*/
 [[:blank:]] { if(verbose) printf("ignoring space\n"); }
 (array|ARRAY) { if(verbose) printf("keyword(%s)\n", yytext); return ARRAYSYM; }
 (else|ELSE) { if(verbose) printf("keyword(%s)\n", yytext); return ELSESYM; }
