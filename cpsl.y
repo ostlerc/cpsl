@@ -205,7 +205,7 @@ nullStatement: /* empty */
 assignStatements: assignStatement
                 | assignStatements assignStatement
                 ;
-assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->add_symbol($1, $3); if(bison_verbose) printf("assigned '%s'\n", $1->c_str()); }
+assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->declare_const($1, $3); }
                ;
 typeStatements: typeStatement
               | typeStatements typeStatement
@@ -264,8 +264,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
 expressionList: expression { SymbolTable::instance()->add_to_expr_list($1); }
-          | expressionList COMMAOSYM expression { SymbolTable::instance()->add_to_expr_list($3); }
-          ;
+              | expressionList COMMAOSYM expression { SymbolTable::instance()->add_to_expr_list($3); }
+              ;
 %%
 
 int yyerror(const char* s)

@@ -32,8 +32,14 @@ void SymbolTableLevel::addVariable(std::string id, Type::ValueType type)
 
     Symbol *sym = new Symbol(id, offset, type, globalScope);
 
-    offset += 4*(globalScope ? 1: -1);
     //TODO: add size by type
+    int size = 4;
+
+    if(!Type::isConst(type))
+    {
+        offset += 4*(globalScope ? 1: -1);
+        cout << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
+    }
 
     variables[id] = sym;
 }

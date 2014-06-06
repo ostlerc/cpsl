@@ -52,6 +52,7 @@ class Symbol
         static std::string GetLabel(const std::string& prefix, bool gen = true);
 
         std::string toString();
+        std::string reg() { return global ? "$gp" : "$fp"; }
 
         void read(); //TODO: for now only read integers, in the future enhance.
         void store();

@@ -10,6 +10,8 @@
 #include "Type.h"
 #include "Expression.h"
 
+class SymbolTableLevel;
+
 class SymbolTable
 {
     //Private constructor
@@ -25,7 +27,7 @@ class SymbolTable
         Expression* lValue(Symbol* s);
         Symbol* findSymbol(std::string*);
         void add_var(std::string *name);
-        void add_symbol(std::string *name, Expression* e);
+        void declare_const(std::string *name, Expression* e);
         void add_to_expr_list(Expression* e);
         void add_to_lval_list(Symbol* s);
         void create_vars(std::string *type_string);
@@ -35,6 +37,8 @@ class SymbolTable
         void initialize();
         void end();
         void checkRegisters();
+        void enterScope();
+        void exitScope();
         Expression* assign(Symbol* s, Expression* e);
 
         //while
@@ -69,14 +73,13 @@ class SymbolTable
     private:
         std::vector<Expression*> expr_list;
         std::vector<std::string> var_list;
-        std::vector<Symbol*> symbols;
-        std::vector<Symbol*> c_symbols; //used to write out const string data at end of program
+        std::vector<Symbol*> c_symbols; //used to write out const string data at end of program, there is no scope for const literals
         std::vector<Symbol*> lval_list; //used to store the list of lvals about to be acted on
+        std::vector<SymbolTableLevel*> levels;
 
         std::stack<std::string> if_stack; //labels to keep track of
         std::stack<std::string> stop_stack; //start labels to keep track of in case of stoppage
-        int cur_offset;
-        bool ignore_next_lval;
+        bool ignore_next_lval; //TODO: remove when types are done
 };
 
 #endif //__SYMBOL_TABLE_H__

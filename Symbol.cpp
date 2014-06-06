@@ -57,7 +57,7 @@ void Symbol::read()
                 cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
                 cout << "\tsyscall" << endl;
 
-                cout << "\tsw $v0, " << offset << "($gp)" << endl;
+                cout << "\tsw $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Char:
@@ -65,7 +65,7 @@ void Symbol::read()
                 cout << "\tli $v0, 12 #read " << toString() << " on line: " << yylineno << endl;
                 cout << "\tsyscall" << endl;
 
-                cout << "\tsb $v0, " << offset << "($gp)" << endl;
+                cout << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Bool:
@@ -73,7 +73,7 @@ void Symbol::read()
                 cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
                 cout << "\tsyscall" << endl;
 
-                cout << "\tsb $v0, " << offset << "($gp)" << endl;
+                cout << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Unknown:

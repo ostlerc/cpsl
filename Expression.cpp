@@ -439,7 +439,7 @@ void Expression::print()
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "($gp) # Load " << toString() << endl;
+                    cout << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << endl;
                 }
             }
             break;
@@ -452,7 +452,7 @@ void Expression::print()
                 }
                 else
                 {
-                    cout << "\tlb $a0, " << symbol->offset << "($gp) # load " << toString() << " on line " << yylineno << endl;
+                    cout << "\tlb $a0, " << symbol->offset << "(" << symbol->reg() << ") # load " << toString() << " on line " << yylineno << endl;
                     cout << "\tsne $a0, $a0, 0 # Boolean var set only to 1 or 0" << endl;
                 }
             }
@@ -466,7 +466,7 @@ void Expression::print()
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "($gp) # Load " << toString() << " on line " << yylineno << endl;
+                    cout << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << " on line " << yylineno << endl;
                 }
             }
             break;
@@ -510,14 +510,14 @@ void Expression::loadInTemp()
     {
         case Type::Integer:
             {
-                cout << "\tlw " << reg->name() << ", " << symbol->offset << "($gp) "
+                cout << "\tlw " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Bool:
         case Type::Char:
             {
-                cout << "\tlb " << reg->name() << ", " << symbol->offset << "($gp) "
+                cout << "\tlb " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
@@ -576,12 +576,12 @@ void Expression::store()
         case Type::Bool:
         case Type::Char:
         {
-            cout << "\tsb " << reg->name() << ", " << symbol->offset << "($gp) #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cout << "\tsb " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
         break;
         default:
         {
-            cout << "\tsw " << reg->name() << ", " << symbol->offset << "($gp) #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cout << "\tsw " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
     }
 }
@@ -613,12 +613,12 @@ void Expression::assign(Symbol* s)
         case Type::Bool:
         case Type::Char:
             {
-                cout << "\tsb " << reg->name() << ", " << s->offset << "($gp) #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cout << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
         default:
             {
-                cout << "\tsw " << reg->name() << ", " << s->offset << "($gp) #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cout << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
         break;
     }

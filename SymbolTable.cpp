@@ -1,8 +1,10 @@
+#include "SymbolTable.h"
+#include "SymbolTableLevel.h"
+#include "Expression.h"
+#include "Type.h"
+
 #include <iostream>
 #include <algorithm>
-
-#include "SymbolTable.h"
-#include "Type.h"
 
 using namespace std;
 
@@ -10,9 +12,10 @@ extern int yylineno; // defined and maintained in lex.cpp
 extern bool bison_verbose;
 
 SymbolTable::SymbolTable()
-    : cur_offset(0)
-    , ignore_next_lval(false)
-{ }
+    : ignore_next_lval(false)
+{
+    levels.emplace_back(new SymbolTableLevel(true));
+}
 
 SymbolTable::~SymbolTable()
 { }
@@ -26,14 +29,10 @@ SymbolTable* SymbolTable::instance()
     return st;
 }
 
-void SymbolTable::add_symbol(std::string *name, Expression *exp)
+void SymbolTable::declare_const(std::string *name, Expression *exp)
 {
+    levels.back()->addVariable(*name, exp->symbol->type);
     exp->symbol->name = *name;
-
-    if(bison_verbose)
-        cout << "adding symbol " << *name << " " << exp->toString() << endl;
-
-    symbols.push_back(exp->symbol);
 }
 
 void SymbolTable::add_var(std::string *name)
@@ -49,7 +48,7 @@ void SymbolTable::add_var(std::string *name)
     var_list.push_back(*name);
 }
 
-Expression* SymbolTable::expression (int i)
+Expression* SymbolTable::expression(int i)
 {
     if(bison_verbose)
         cout << "expression int " << i << endl;
@@ -140,15 +139,11 @@ Expression* SymbolTable::expression_char(string* s)
 
 Symbol* SymbolTable::findSymbol(string* s)
 {
-    for(unsigned int i = 0; i < symbols.size(); i++)
-    {
-        if(symbols[i]->name == *s)
-        {
-            if(bison_verbose)
-                cout << "found symbol " << *s << " " << symbols[i] << endl;
-            return symbols[i];
-        }
-    }
+    auto res = levels.back()->lookupVariable(*s);
+    if(res) return res;
+
+    res = levels.front()->lookupVariable(*s); //front is global
+    if(res) return res;
 
     cerr << "could not find symbol " << *s << " line: " << yylineno << endl;
     exit(1);
@@ -156,26 +151,12 @@ Symbol* SymbolTable::findSymbol(string* s)
 
 void SymbolTable::create_vars(std::string *type_string)
 {
-    string names = " #(";
-    int size = 0;
     Type::ValueType type = Type::fromString(*type_string, false);
 
-    for(unsigned int i = 0; i < var_list.size(); i++)
+    for(int i = var_list.size()-1; i >= 0; i--)
     {
-        Symbol *s = new Symbol(var_list[i], cur_offset, type);
-        if(bison_verbose)
-            cout << "created symbol " << " " << s->toString() << endl;
-        symbols.push_back(s);
-        if(i > 0)
-            names += " ";
-        names += var_list[i]; + "[" + to_string(cur_offset) + "]";
-        cur_offset += 4;
-        size += 4;
+        levels.back()->addVariable(var_list[i], type);
     }
-
-    names += ")";
-
-    cout << "\t.space " << size << names << " +" << cur_offset << endl;
 
     var_list.clear();
 }
@@ -236,23 +217,22 @@ void SymbolTable::read()
 
 void SymbolTable::begin()
 {
+    initialize();
     cout << "\t.text" << endl;
     cout << "main:\n";
-
-    initialize();
 }
 
 void SymbolTable::initialize()
 {
-    Expression *t = new Expression(new Symbol("true", true));
-    Expression *T = new Expression(new Symbol("TRUE", true));
-    Expression *f = new Expression(new Symbol("false", false));
-    Expression *F = new Expression(new Symbol("FALSE", false));
+    levels.back()->addVariable("true", Type::Const_Bool);
+    levels.back()->addVariable("TRUE", Type::Const_Bool);
+    levels.back()->addVariable("false", Type::Const_Bool);
+    levels.back()->addVariable("FALSE", Type::Const_Bool);
 
-    symbols.push_back(t->symbol);
-    symbols.push_back(T->symbol);
-    symbols.push_back(f->symbol);
-    symbols.push_back(F->symbol);
+    auto v = levels.back()->lookupVariable("true"); v->bool_value = true;
+         v = levels.back()->lookupVariable("TRUE"); v->bool_value = true;
+         v = levels.back()->lookupVariable("false"); v->bool_value = false;
+         v = levels.back()->lookupVariable("FALSE"); v->bool_value = false;
 }
 
 void SymbolTable::end()
@@ -265,7 +245,7 @@ void SymbolTable::end()
         cout << "\t.data" << endl;
 
         if(bison_verbose)
-            cout << "there are " << c_symbols.size() << " constant string entries to add" << endl;
+            cout << "there are " << c_symbols.size() << " constant entries to add" << endl;
 
         for(unsigned int i = 0; i < c_symbols.size(); i++)
             c_symbols[i]->store();
@@ -422,4 +402,14 @@ void SymbolTable::endProcedure()
 {
     cout << "\tj $ra" << endl;
     cout << "######################" << endl << endl;
+}
+
+void SymbolTable::enterScope()
+{
+    levels.push_back(new SymbolTableLevel(false));
+}
+
+void SymbolTable::exitScope()
+{
+    levels.pop_back();
 }
