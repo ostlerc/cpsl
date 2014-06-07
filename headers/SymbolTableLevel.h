@@ -16,7 +16,12 @@ class SymbolTableLevel
             , globalScope(isGlobal)
         {}
 
+        void load();
+        void store();
+
         void addVariable(std::string id, Type::ValueType type);
+        Symbol* addProcedure(std::string id);
+        void checkProcedures();
         Symbol* lookupVariable(std::string id);
         void addType(std::string id, Type::ValueType type);
         Type::ValueType lookupType(std::string id);

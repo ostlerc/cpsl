@@ -35,19 +35,6 @@ void SymbolTable::declare_const(std::string *name, Expression *exp)
     exp->symbol->name = *name;
 }
 
-void SymbolTable::add_var(std::string *name)
-{
-    auto it = find(var_list.begin(), var_list.end(), *name);
-    if(it != var_list.end())
-    {
-        cerr << "already have defined variable " << *name << " line: " << yylineno << endl;
-        exit(1);
-    }
-    if(bison_verbose)
-        cout << "added var " << *name << endl;
-    var_list.push_back(*name);
-}
-
 Expression* SymbolTable::expression(int i)
 {
     if(bison_verbose)
@@ -137,7 +124,12 @@ Expression* SymbolTable::expression_char(string* s)
     return new Expression(sym);
 }
 
-Symbol* SymbolTable::findSymbol(string* s)
+Symbol* SymbolTable::findSymbol(string s, bool err)
+{
+    return findSymbol(&s, err);
+}
+
+Symbol* SymbolTable::findSymbol(string* s, bool err)
 {
     auto res = levels.back()->lookupVariable(*s);
     if(res) return res;
@@ -145,43 +137,35 @@ Symbol* SymbolTable::findSymbol(string* s)
     res = levels.front()->lookupVariable(*s); //front is global
     if(res) return res;
 
+    if(!err)
+        return NULL;
+
     cerr << "could not find symbol " << *s << " line: " << yylineno << endl;
     exit(1);
 }
 
-void SymbolTable::create_vars(std::string *type_string)
+void SymbolTable::create_vars(std::string *type_string, StrList* var_list)
 {
     Type::ValueType type = Type::fromString(*type_string, false);
 
-    for(int i = var_list.size()-1; i >= 0; i--)
+    for(int i = var_list->size()-1; i >= 0; i--)
     {
-        levels.back()->addVariable(var_list[i], type);
+        levels.back()->addVariable(var_list->at(i), type);
     }
-
-    var_list.clear();
 }
 
-void SymbolTable::add_to_expr_list(Expression* e)
+void SymbolTable::print(ExprList* expr_list)
 {
-    if(bison_verbose)
-        cout << "added expr " << e->toString() << " line: " << yylineno << endl;
-    expr_list.push_back(e);
-}
-
-void SymbolTable::print()
-{
-    if(expr_list.size() == 0)
+    if(expr_list->size() == 0)
     {
         cerr << "Missing arguments on line: " << yylineno << endl;
         exit(1);
     }
 
-    for(unsigned int i = 0; i < expr_list.size(); i++)
-        expr_list[i]->print();
+    for(unsigned int i = 0; i < expr_list->size(); i++)
+        expr_list->at(i)->print();
 
     checkRegisters();
-
-    expr_list.clear();
 }
 
 void SymbolTable::checkRegisters()
@@ -224,15 +208,18 @@ void SymbolTable::begin()
 
 void SymbolTable::initialize()
 {
-    levels.back()->addVariable("true", Type::Const_Bool);
-    levels.back()->addVariable("TRUE", Type::Const_Bool);
-    levels.back()->addVariable("false", Type::Const_Bool);
-    levels.back()->addVariable("FALSE", Type::Const_Bool);
+    levels.front()->addVariable("true", Type::Const_Bool);
+    levels.front()->addVariable("TRUE", Type::Const_Bool);
+    levels.front()->addVariable("false", Type::Const_Bool);
+    levels.front()->addVariable("FALSE", Type::Const_Bool);
 
-    auto v = levels.back()->lookupVariable("true"); v->bool_value = true;
-         v = levels.back()->lookupVariable("TRUE"); v->bool_value = true;
-         v = levels.back()->lookupVariable("false"); v->bool_value = false;
-         v = levels.back()->lookupVariable("FALSE"); v->bool_value = false;
+    auto v = levels.front()->lookupVariable("true"); v->bool_value = true;
+         v = levels.front()->lookupVariable("TRUE"); v->bool_value = true;
+         v = levels.front()->lookupVariable("false"); v->bool_value = false;
+         v = levels.front()->lookupVariable("FALSE"); v->bool_value = false;
+
+     //check declared procedures all exist
+     levels.front()->checkProcedures();
 }
 
 void SymbolTable::end()
@@ -386,22 +373,39 @@ void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
 
 void SymbolTable::procedureHead()
 {
-    cout << endl << "######################" << endl;
-    cout << "\t.data" << endl;
-    enterScope();
 }
 
-void SymbolTable::procedureParams(string* id)
+void SymbolTable::procedureParams(string* id, ParamList* params)
 {
+    enterScope();
+    cout << endl << "######################" << endl;
+    cout << "\t.data" << endl;
+
+    Symbol *sym = findSymbol(procId(*id, params->list()), false);
+    if(!sym)
+    {
+        cout << "could not find procedure " << *id << " on line " << yylineno << endl;
+        sym = forwardProc(id, params);
+    }
+    else if(sym->type != Type::Procedure)
+    {
+        cerr << "Symbol is not of type procedure: " << *id << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    sym->bool_value = true;
+
     cout << "\t.text" << endl;
-    cout << "proc." << *id << ":";
+    cout << "proc." << procId(*id,params->list()) << ":";
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
     cout << endl;
+    cout << "#callee prologue" << endl;
 }
 
 void SymbolTable::endProcedure()
 {
+    cout << "#callee epilogue" << endl;
     cout << "\tjr $ra" << endl;
     cout << "######################" << endl << endl;
     exitScope();
@@ -417,7 +421,115 @@ void SymbolTable::exitScope()
     levels.pop_back();
 }
 
-void SymbolTable::callProc(std::string* proc)
+void SymbolTable::callProc(std::string* proc, ExprList* expr_list)
 {
-    cout << "\tjal proc." << *proc << " # calling procedure on line " << yylineno << endl;
+    std::string lbl = procId(*proc, expr_list);
+    Symbol *s = findSymbol(lbl);
+    if(s->type != Type::Procedure)
+    {
+        cerr << "type of variable " << *proc << " is not a procedure on line " << yylineno << endl;
+        exit(1);
+    }
+    cout << "#caller prologue" << endl;
+    levels.back()->store(); //push registers
+    push("$ra");
+    push("$fp");
+    set("$fp","$sp");
+    cout << "\tjal proc." << lbl << " # calling procedure " << *proc << " on line " << yylineno << endl;
+    cout << "#caller epilogue" << endl;
+    set("$sp","$fp");
+    pop("$fp");
+    pop("$ra");
+    levels.back()->load(); //load registers
+}
+
+Symbol * SymbolTable::forwardProc(std::string* id, ParamList* params)
+{
+    Symbol* s = levels.front()->addProcedure(procId(*id, params->list()));
+
+    return s;
+}
+
+void SymbolTable::push(std::string reg)
+{
+    cout << "\tsw " << reg << ", 0($sp) #push onto stack" << endl;
+    cout << "\tadd $sp, $sp, -4" << endl;
+}
+
+void SymbolTable::pop(std::string reg)
+{
+    cout << "\tadd $sp, $sp, 4" << endl;
+    cout << "\tlw " << reg << ", 0($sp) #pop off stack" << endl;
+}
+
+void SymbolTable::set(std::string lhs, std::string rhs)
+{
+    cout << "\tadd " << lhs << ", " << rhs << ", $zero" << endl;
+}
+
+std::string SymbolTable::paramsString(Parameters params)
+{
+    std::string ret;
+    std::string tstr = Type::toString(params.type);
+    for(unsigned int i = 0; i < params.vars->size(); i++)
+    {
+        if(i)
+            ret += ".";
+
+        ret += tstr;
+    }
+
+    return ret;
+}
+
+std::string SymbolTable::paramsString(std::vector<Expression*>& exprs)
+{
+    std::string ret;
+    bool first = true;
+    for(auto&e : exprs)
+    {
+        if(!first)
+            ret += ".";
+        else
+            first = false;
+        std::string tstr = Type::toString(Type::nonconst_val(e->type()));
+        ret += tstr;
+    }
+
+    return ret;
+}
+
+std::string SymbolTable::procId(std::string id, Parameters params)
+{
+    if(params.vars->size() > 0)
+        return id + "_" + paramsString(params);
+
+    return id;
+}
+
+std::string SymbolTable::procId(std::string id, std::vector<Parameters>& params)
+{
+    std::string ret = id;
+    if(params.size() > 0)
+    {
+        ret += "_";
+        bool first = true;
+        for(auto v : params)
+        {
+            if(first)
+                ret += paramsString(v);
+            else
+                ret += "," + paramsString(v);
+        }
+    }
+
+    return ret;
+}
+
+std::string SymbolTable::procId(std::string id, ExprList* exprs)
+{
+    if(exprs && exprs->size() > 0)
+        return id + "_" + paramsString(exprs->list());
+
+    return id;
 }

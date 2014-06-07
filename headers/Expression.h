@@ -3,6 +3,7 @@
 
 #include "Symbol.h"
 #include "Register.h"
+#include "ListWrapper.h"
 
 class SymbolTable;
 
@@ -60,6 +61,7 @@ class Expression
         void invalidType(Operation op);
         void setType(Operation op, bool isConst = true);
         void store();
+        Type::ValueType type() { return symbol->type; }
 
     private:
 
@@ -73,5 +75,7 @@ class Expression
         Symbol* symbol;
         Register* reg;
 };
+
+typedef ListWrapper<Expression*> ExprList;
 
 #endif //__EXPRESSION_H__

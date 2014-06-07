@@ -14,6 +14,8 @@ class Type
             Integer,
             Char,
             Bool,
+            Procedure,
+            Function,
             Unknown
         };
 

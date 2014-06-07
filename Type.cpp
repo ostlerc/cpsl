@@ -29,21 +29,25 @@ string Type::toString(ValueType vt)
     switch(vt)
     {
         case Const_Integer:
-            return "const integer";
+            return "const_integer";
         case Const_String:
-            return "const string";
+            return "const_string";
         case Const_Char:
-            return "const char";
+            return "const_char";
         case Const_Bool:
-            return "const bool";
+            return "const_boolean";
         case Integer:
             return "integer";
         case Char:
             return "char";
         case Bool:
-            return "bool";
+            return "boolean";
         case Unknown:
             return "unknown";
+        case Procedure:
+            return "procedure";
+        case Function:
+            return "function";
         default:
             cerr << "Unknown valuetype " << vt << " on line: " << yylineno << endl;
             exit(1);
@@ -129,6 +133,15 @@ bool Type::match(ValueType lhs, ValueType rhs)
         return true;
 
     if(lhs == Const_String || rhs == Const_String)
+        return false;
+
+    if(lhs == Function || rhs == Function)
+        return false;
+
+    if(lhs == Procedure || rhs == Procedure)
+        return false;
+
+    if(lhs == Unknown || rhs == Unknown)
         return false;
 
     //if(nonconst_val(lhs) == nonconst_val(rhs))

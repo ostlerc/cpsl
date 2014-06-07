@@ -31,6 +31,7 @@ set(cpsl_headers
     headers/Expression.h
     headers/Register.h
     headers/Type.h
+    headers/ListWrapper.h
     )
 
 add_executable(cpsl ${cpsl_srcs} ${cpsl_headers})

@@ -5,6 +5,8 @@
 
 #include "Type.h"
 
+struct Parameters;
+
 class Symbol
 {
     public:

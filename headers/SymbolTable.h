@@ -12,6 +12,17 @@
 
 class SymbolTableLevel;
 
+typedef ListWrapper<std::string> StrList;
+
+struct Parameters
+{
+    Parameters(StrList* sl, Type::ValueType type) : vars(sl) , type(type) {}
+    StrList* vars;
+    Type::ValueType type;
+};
+
+typedef ListWrapper<Parameters> ParamList;
+
 class SymbolTable
 {
     //Private constructor
@@ -25,14 +36,14 @@ class SymbolTable
         Expression* expression_string(std::string*);
         Expression* expression_char(std::string*);
         Expression* lValue(Symbol* s);
-        Symbol* findSymbol(std::string*);
-        void add_var(std::string *name);
+        Symbol* findSymbol(std::string*, bool err = true);
+        Symbol* findSymbol(std::string, bool err = true);
         void declare_const(std::string *name, Expression* e);
         void add_to_expr_list(Expression* e);
         void add_to_lval_list(Symbol* s);
-        void create_vars(std::string *type_string);
+        void create_vars(std::string *type_string, StrList* var_list);
         void read();
-        void print();
+        void print(ExprList* expr_list);
         void begin();
         void initialize();
         void end();
@@ -40,6 +51,10 @@ class SymbolTable
         void enterScope();
         void exitScope();
         Expression* assign(Symbol* s, Expression* e);
+
+        void push(std::string reg);
+        void pop(std::string reg);
+        void set(std::string lhs, std::string rhs);
 
         //while
         std::string* whileStart();
@@ -66,14 +81,20 @@ class SymbolTable
         Expression* unimp();
         void ignoreNextLValue();
 
+        Symbol* forwardProc(std::string* id, ParamList* params);
         void procedureHead();
-        void procedureParams(std::string* id);
+        void procedureParams(std::string* id, ParamList* params);
         void endProcedure();
-        void callProc(std::string* proc);
+        void callProc(std::string* proc, ExprList* expr_list = NULL);
+
+        std::string paramsString(Parameters params);
+        std::string paramsString(std::vector<Expression*>& exprs);
+        std::string procId(std::string id, Parameters params);
+        std::string procId(std::string id, std::vector<Parameters>& params);
+        std::string procId(std::string id, ExprList* exprs);
 
     private:
-        std::vector<Expression*> expr_list;
-        std::vector<std::string> var_list;
+
         std::vector<Symbol*> c_symbols; //used to write out const string data at end of program, there is no scope for const literals
         std::vector<Symbol*> lval_list; //used to store the list of lvals about to be acted on
         std::vector<SymbolTableLevel*> levels;
@@ -82,5 +103,6 @@ class SymbolTable
         std::stack<std::string> stop_stack; //start labels to keep track of in case of stoppage
         bool ignore_next_lval; //TODO: remove when types are done
 };
+
 
 #endif //__SYMBOL_TABLE_H__

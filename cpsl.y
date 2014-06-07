@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "SymbolTable.h"
+#include "Type.h"
 
 int bison_verbose = 0;
 int yyerror(const char* s);
@@ -21,6 +22,10 @@ extern "C" int yylex();
   SymbolTable *tableptr;
   Expression *exprptr;
   Symbol *symptr;
+  ExprList *expr_list;
+  StrList *str_list;
+  Parameters *paramptr;
+  ParamList *param_list;
 }
 
 /*%start  inputs*/
@@ -45,7 +50,8 @@ extern "C" int yylex();
 %type <symptr> lValue;
 %type <str_val> type;
 %type <str_val> simpleType;
-%type <str_val> formalParameter;
+%type <paramptr> formalParameter;
+%type <param_list> formalParameters;
 %type <str_val> whileHead; /*return start label*/
 %type <str_val> whileExpr; /*return end label*/
 %type <str_val> ifExpr;    /*return end label*/
@@ -53,6 +59,11 @@ extern "C" int yylex();
 %type <exprptr> forAssign;
 %type <str_val> forExpr;
 %type <str_val> repeatHead;
+%type <str_val> procedureParams;
+%type <expr_list> expressionList;
+%type <str_val> commaIdentifier;
+%type <str_list> commaIdentifiers;
+%type <str_list> identList;
 
 %nonassoc ARRAYSYM ELSESYM IFSYM RECORDSYM TOSYM BEGINSYM ELSEIFSYM OFSYM REPEATSYM TYPESYM CHRSYM ENDSYM
 %nonassoc ORDSYM RETURNSYM UNTILSYM CONSTSYM FORSYM PREDSYM STOPSYM VARSYM DOSYM FORWARDSYM PROCEDURESYM
@@ -95,7 +106,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3); }
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3, $1); }
             ;
 pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
@@ -103,22 +114,20 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: procedureHead procedureParams FORWARDSYM SEMIOSYM
-             | procedureHead procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
+procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,$4); }
+             | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
              ;
-procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { SymbolTable::instance()->procedureParams($1); }
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,$3); }
                ;
-procedureHead: PROCEDURESYM { SymbolTable::instance()->procedureHead(); }
-             ;
 functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
             ;
-formalParameters: /*empty*/
-                | formalParameter { SymbolTable::instance()->create_vars($1); }
-                | formalParameters SEMIOSYM formalParameter { SymbolTable::instance()->create_vars($3); }
+formalParameters: /*empty*/ { $$ = new ParamList; }
+                | formalParameter { $$ = new ParamList(*$1); }
+                | formalParameters SEMIOSYM formalParameter { $$ = $1->add(*$3); }
                 ;
-formalParameter: VARSYM identList COLONOSYM type { $$ = $4; }
-               | identList COLONOSYM type { $$ = $3; }
+formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2, Type::fromString(*$4)); }
+               | identList COLONOSYM type { $$ = new Parameters($1, Type::fromString(*$3)); }
                ;
 body: constDecl typeDecl varDecl block
     ;
@@ -195,10 +204,10 @@ returnStatement: RETURNSYM expression { $2->free(); }
                ;
 readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); SymbolTable::instance()->checkRegisters(); }
              ;
-writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print(); }
+writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3); }
               ;
-procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc($1); /* function call */ }
-             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->unimp(); /* function call */ }
+procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc($1); /* procedure call */ }
+             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc($1, $3); /* procedure call */ }
              ;
 nullStatement: /* empty */
              ;
@@ -225,13 +234,13 @@ recordDecls: /*empty*/
            ;
 recordDecl: identList COLONOSYM type SEMIOSYM
           ;
-identList: IDENTSYM { SymbolTable::instance()->add_var($1); if(bison_verbose) printf("id '%s'\n", $1->c_str()); }
-         | IDENTSYM commaIdentifiers { SymbolTable::instance()->add_var($1); }
+identList: IDENTSYM { $$ = new StrList(*$1); }
+         | IDENTSYM commaIdentifiers { $$ = $2->add(*$1); }
          ;
-commaIdentifiers: commaIdentifiers commaIdentifier
-                | commaIdentifier
+commaIdentifiers: commaIdentifiers commaIdentifier { $$ = $1->add(*$2); }
+                | commaIdentifier { $$ = new StrList(*$1); }
                 ;
-commaIdentifier: COMMAOSYM IDENTSYM { SymbolTable::instance()->add_var($2); if(bison_verbose) printf("nested comma id '%s'\n", $2->c_str()); }
+commaIdentifier: COMMAOSYM IDENTSYM { $$ = $2; }
                ;
 arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type
          ;
@@ -263,8 +272,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Succ); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
-expressionList: expression { SymbolTable::instance()->add_to_expr_list($1); }
-              | expressionList COMMAOSYM expression { SymbolTable::instance()->add_to_expr_list($3); }
+expressionList: expression { $$ = new ExprList($1); }
+              | expressionList COMMAOSYM expression { $$ = $1->add($3); }
               ;
 %%
 
