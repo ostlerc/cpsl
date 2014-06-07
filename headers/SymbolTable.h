@@ -42,6 +42,7 @@ class SymbolTable
         void enterScope();
         void exitScope();
         Expression* assign(Symbol* s, Expression* e);
+        Expression* assign(std::string s, Expression* e);
 
         void push(std::string reg);
         void pop(std::string reg);

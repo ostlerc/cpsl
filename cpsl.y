@@ -193,10 +193,7 @@ forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::insta
 forExpr: forAssign TOSYM     expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ); }
        | forAssign DOWNTOSYM expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred); }
        ;
-forAssign: IDENTSYM ASSIGNOSYM expression
-         {
-             Symbol*s = SymbolTable::instance()->findSymbol($1);
-             $$ = SymbolTable::instance()->assign(s, $3);
+forAssign: IDENTSYM ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign(*$1, $3);
          }
          ;
 stopStatement: STOPSYM { SymbolTable::instance()->stop(); }

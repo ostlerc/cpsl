@@ -7,7 +7,7 @@ template <typename T>
 class ListWrapper
 {
     public:
-        ListWrapper(T t) : _list( {t} ) {}
+        ListWrapper(T& t) : _list( {t} ) {}
         ListWrapper() {}
 
         unsigned int size() { return _list.size(); }

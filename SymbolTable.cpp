@@ -231,6 +231,11 @@ void SymbolTable::end()
     }
 }
 
+Expression* SymbolTable::assign(std::string s, Expression* e)
+{
+    return assign(findSymbol(s), e);
+}
+
 Expression* SymbolTable::assign(Symbol* s, Expression* e)
 {
     if(ignore_next_lval)
