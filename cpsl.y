@@ -26,6 +26,7 @@ extern "C" int yylex();
   StrList *str_list;
   Parameters *paramptr;
   ParamList *param_list;
+  SymList *sym_list;
 }
 
 /*%start  inputs*/
@@ -48,6 +49,7 @@ extern "C" int yylex();
 
 %type <exprptr> expression
 %type <symptr> lValue;
+%type <sym_list> lValueList;
 %type <str_val> type;
 %type <str_val> simpleType;
 %type <paramptr> formalParameter;
@@ -114,10 +116,10 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,$4); }
+procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,*$4); }
              | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
              ;
-procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,$3); }
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,*$3); }
                ;
 functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
@@ -160,8 +162,8 @@ lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM { SymbolTable::instance()->ignoreNextLValue(); }
             | lValueHelper LBRACKETOSYM expression RBRACKETOSYM { $3->free(); SymbolTable::instance()->ignoreNextLValue(); }
             ;
-lValueList: lValue { SymbolTable::instance()->add_to_lval_list($1); }
-          | lValueList COMMAOSYM lValue { SymbolTable::instance()->add_to_lval_list($3); }
+lValueList: lValue { $$ = new SymList($1); }
+          | lValueList COMMAOSYM lValue { $$ = $1->add($3); }
           ;
 ifStatement: ifCondition elseifStatement elseStatement ENDSYM { SymbolTable::instance()->ifStatement(); }
            ;
@@ -202,7 +204,7 @@ stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
 returnStatement: RETURNSYM expression { $2->free(); }
                | RETURNSYM
                ;
-readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(); SymbolTable::instance()->checkRegisters(); }
+readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(*$3); }
              ;
 writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3); }
               ;

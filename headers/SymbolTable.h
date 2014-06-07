@@ -11,16 +11,9 @@
 #include "Expression.h"
 
 class SymbolTableLevel;
+struct Parameters;
 
 typedef ListWrapper<std::string> StrList;
-
-struct Parameters
-{
-    Parameters(StrList* sl, Type::ValueType type) : vars(sl) , type(type) {}
-    StrList* vars;
-    Type::ValueType type;
-};
-
 typedef ListWrapper<Parameters> ParamList;
 
 class SymbolTable
@@ -39,10 +32,8 @@ class SymbolTable
         Symbol* findSymbol(std::string*, bool err = true);
         Symbol* findSymbol(std::string, bool err = true);
         void declare_const(std::string *name, Expression* e);
-        void add_to_expr_list(Expression* e);
-        void add_to_lval_list(Symbol* s);
         void create_vars(std::string *type_string, StrList* var_list);
-        void read();
+        void read(SymList sym_list);
         void print(ExprList* expr_list);
         void begin();
         void initialize();
@@ -81,9 +72,9 @@ class SymbolTable
         Expression* unimp();
         void ignoreNextLValue();
 
-        Symbol* forwardProc(std::string* id, ParamList* params);
+        Symbol* forwardProc(std::string* id, ParamList params);
         void procedureHead();
-        void procedureParams(std::string* id, ParamList* params);
+        void procedureParams(std::string* id, ParamList params);
         void endProcedure();
         void callProc(std::string* proc, ExprList* expr_list = NULL);
 
@@ -96,13 +87,18 @@ class SymbolTable
     private:
 
         std::vector<Symbol*> c_symbols; //used to write out const string data at end of program, there is no scope for const literals
-        std::vector<Symbol*> lval_list; //used to store the list of lvals about to be acted on
         std::vector<SymbolTableLevel*> levels;
 
-        std::stack<std::string> if_stack; //labels to keep track of
-        std::stack<std::string> stop_stack; //start labels to keep track of in case of stoppage
+        std::map<std::string, std::stack<std::string>> lbl_stack;
         bool ignore_next_lval; //TODO: remove when types are done
 };
 
+
+struct Parameters
+{
+    Parameters(StrList* sl, Type::ValueType type) : vars(sl) , type(type) {}
+    StrList* vars;
+    Type::ValueType type;
+};
 
 #endif //__SYMBOL_TABLE_H__

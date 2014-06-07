@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Type.h"
+#include "ListWrapper.h"
 
 struct Parameters;
 
@@ -69,5 +70,7 @@ class Symbol
         Type::ValueType type;
         bool global;
 };
+
+typedef ListWrapper<Symbol*> SymList;
 
 #endif //__SYMBOL_H__
