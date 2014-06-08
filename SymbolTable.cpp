@@ -144,26 +144,26 @@ Symbol* SymbolTable::findSymbol(string* s, bool err)
     exit(1);
 }
 
-void SymbolTable::create_vars(std::string *type_string, StrList* var_list)
+void SymbolTable::create_vars(std::string *type_string, vector<std::string> var_list)
 {
     Type::ValueType type = Type::fromString(*type_string, false);
 
-    for(int i = var_list->size()-1; i >= 0; i--)
+    for(int i = var_list.size()-1; i >= 0; i--)
     {
-        levels.back()->addVariable(var_list->at(i), type);
+        levels.back()->addVariable(var_list[i], type);
     }
 }
 
-void SymbolTable::print(ExprList* expr_list)
+void SymbolTable::print(vector<Expression*> expr_list)
 {
-    if(expr_list->size() == 0)
+    if(expr_list.size() == 0)
     {
         cerr << "Missing arguments on line: " << yylineno << endl;
         exit(1);
     }
 
-    for(unsigned int i = 0; i < expr_list->size(); i++)
-        expr_list->at(i)->print();
+    for(unsigned int i = 0; i < expr_list.size(); i++)
+        expr_list[i]->print();
 
     checkRegisters();
 }
@@ -177,7 +177,7 @@ void SymbolTable::checkRegisters()
     }
 }
 
-void SymbolTable::read(SymList sym_list)
+void SymbolTable::read(vector<Symbol*> sym_list)
 {
     if(sym_list.size() == 0)
     {
@@ -186,7 +186,7 @@ void SymbolTable::read(SymList sym_list)
     }
 
     for(unsigned int i = 0; i < sym_list.size(); i++)
-        sym_list.at(i)->read();
+        sym_list[i]->read();
 
     checkRegisters();
 }
@@ -372,13 +372,12 @@ void SymbolTable::procedureHead()
 {
 }
 
-void SymbolTable::procedureParams(string* id, ParamList params)
+void SymbolTable::procedureParams(string* id, std::vector<Parameters> params)
 {
     enterScope();
     cout << endl << "######################" << endl;
-    cout << "\t.data" << endl;
 
-    Symbol *sym = findSymbol(procId(*id, params.list()), false);
+    Symbol *sym = findSymbol(procId(*id, params), false);
     if(!sym)
     {
         cout << "could not find procedure " << *id << " on line " << yylineno << endl;
@@ -390,10 +389,15 @@ void SymbolTable::procedureParams(string* id, ParamList params)
         exit(1);
     }
 
+    for(Parameters p : params)
+    {
+        for(string s : p.vars)
+            cout << s << endl;
+    }
+
     sym->bool_value = true;
 
-    cout << "\t.text" << endl;
-    cout << "proc." << procId(*id, params.list()) << ":";
+    cout << "proc." << procId(*id, params) << ":";
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
     cout << endl;
@@ -418,7 +422,7 @@ void SymbolTable::exitScope()
     levels.pop_back();
 }
 
-void SymbolTable::callProc(std::string* proc, ExprList* expr_list)
+void SymbolTable::callProc(std::string* proc, vector<Expression*> expr_list)
 {
     std::string lbl = procId(*proc, expr_list);
     Symbol *s = findSymbol(lbl);
@@ -440,9 +444,9 @@ void SymbolTable::callProc(std::string* proc, ExprList* expr_list)
     levels.back()->load(); //load registers
 }
 
-Symbol* SymbolTable::forwardProc(std::string* id, ParamList params)
+Symbol* SymbolTable::forwardProc(std::string* id, std::vector<Parameters> params)
 {
-    Symbol* s = levels.front()->addProcedure(procId(*id, params.list()));
+    Symbol* s = levels.front()->addProcedure(procId(*id, params));
 
     return s;
 }
@@ -468,7 +472,7 @@ std::string SymbolTable::paramsString(Parameters params)
 {
     std::string ret;
     std::string tstr = Type::toString(params.type);
-    for(unsigned int i = 0; i < params.vars->size(); i++)
+    for(unsigned int i = 0; i < params.vars.size(); i++)
     {
         if(i)
             ret += ".";
@@ -498,7 +502,7 @@ std::string SymbolTable::paramsString(std::vector<Expression*>& exprs)
 
 std::string SymbolTable::procId(std::string id, Parameters params)
 {
-    if(params.vars->size() > 0)
+    if(params.vars.size() > 0)
         return id + "_" + paramsString(params);
 
     return id;
@@ -523,10 +527,10 @@ std::string SymbolTable::procId(std::string id, std::vector<Parameters>& params)
     return ret;
 }
 
-std::string SymbolTable::procId(std::string id, ExprList* exprs)
+std::string SymbolTable::procId(std::string id, vector<Expression*> exprs)
 {
-    if(exprs && exprs->size() > 0)
-        return id + "_" + paramsString(exprs->list());
+    if(exprs.size() > 0)
+        return id + "_" + paramsString(exprs);
 
     return id;
 }

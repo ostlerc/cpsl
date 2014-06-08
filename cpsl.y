@@ -108,7 +108,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3, $1); }
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3, $1->list()); }
             ;
 pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
@@ -116,10 +116,10 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,*$4); }
+procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,$4->list()); }
              | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
              ;
-procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,*$3); }
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,$3->list()); }
                ;
 functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
@@ -128,8 +128,8 @@ formalParameters: /*empty*/ { $$ = new ParamList; }
                 | formalParameter { $$ = new ParamList(*$1); }
                 | formalParameters SEMIOSYM formalParameter { $$ = $1->add(*$3); }
                 ;
-formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2, Type::fromString(*$4)); }
-               | identList COLONOSYM type { $$ = new Parameters($1, Type::fromString(*$3)); }
+formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2->list(), Type::fromString(*$4)); }
+               | identList COLONOSYM type { $$ = new Parameters($1->list(), Type::fromString(*$3)); }
                ;
 body: constDecl typeDecl varDecl block
     ;
@@ -201,12 +201,12 @@ stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
 returnStatement: RETURNSYM expression { $2->free(); }
                | RETURNSYM
                ;
-readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read(*$3); }
+readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read($3->list()); }
              ;
-writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3); }
+writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3->list()); }
               ;
 procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc($1); /* procedure call */ }
-             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc($1, $3); /* procedure call */ }
+             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc($1, $3->list()); /* procedure call */ }
              ;
 nullStatement: /* empty */
              ;

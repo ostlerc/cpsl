@@ -11,7 +11,7 @@ class ListWrapper
         ListWrapper() {}
 
         unsigned int size() { return _list.size(); }
-        T at(int i) { return _list[i]; }
+        T& at(int i) { return _list[i]; }
 
         std::vector<T>& list() { return _list; }
         ListWrapper<T>* add(T& t) { _list.push_back(t); return this; }
