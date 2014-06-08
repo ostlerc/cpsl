@@ -380,7 +380,6 @@ void SymbolTable::procedureParams(string* id, std::vector<Parameters> params)
     Symbol *sym = findSymbol(procId(*id, params), false);
     if(!sym)
     {
-        cout << "could not find procedure " << *id << " on line " << yylineno << endl;
         sym = forwardProc(id, params);
     }
     else if(sym->type != Type::Procedure)
