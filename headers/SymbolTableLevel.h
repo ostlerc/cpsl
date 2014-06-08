@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 
+#include "SymbolTable.h"
 #include "Type.h"
 
 class Symbol;
@@ -18,13 +19,18 @@ class SymbolTableLevel
 
         void load();
         void store();
+        void loadParams(std::vector<Parameters> params);
+        void unloadParams(std::vector<Parameters> params);
+        void saveExpressions(std::vector<Expression*> expr_list);
 
         void addVariable(std::string id, Type::ValueType type);
+        void popVariable(std::string id, Type::ValueType type);
         Symbol* addProcedure(std::string id);
         void checkProcedures();
         Symbol* lookupVariable(std::string id);
         void addType(std::string id, Type::ValueType type);
         Type::ValueType lookupType(std::string id);
+
 
     private:
         void checkId(std::string id);

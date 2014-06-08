@@ -567,23 +567,31 @@ void Expression::free()
     }
 }
 
-void Expression::store()
+void Expression::store(int offset, std::string regstr)
 {
-    if(!reg)
-        return;
+    loadInTemp();
+
+    if(offset == -1)
+        offset = symbol->offset;
+
+    if(regstr.empty())
+        regstr = symbol->reg();
+
     switch(symbol->type)
     {
         case Type::Bool:
         case Type::Char:
         {
-            cout << "\tsb " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cout << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
         break;
         default:
         {
-            cout << "\tsw " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cout << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
     }
+
+    free();
 }
 
 void Expression::assign(Symbol* s)

@@ -61,7 +61,7 @@ extern "C" int yylex();
 %type <exprptr> forAssign;
 %type <str_val> forExpr;
 %type <str_val> repeatHead;
-%type <str_val> procedureParams;
+%type <param_list> procedureParams;
 %type <expr_list> expressionList;
 %type <str_val> commaIdentifier;
 %type <str_list> commaIdentifiers;
@@ -117,9 +117,9 @@ pOrFDecl: procedureDecl
         | functionDecl
         ;
 procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,$4->list()); }
-             | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure(); }
+             | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure($2->list()); }
              ;
-procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $1; SymbolTable::instance()->procedureParams($1,$3->list()); }
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams($1,$3->list()); }
                ;
 functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
             | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
@@ -198,8 +198,8 @@ forAssign: IDENTSYM ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign
          ;
 stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
              ;
-returnStatement: RETURNSYM expression { $2->free(); }
-               | RETURNSYM
+returnStatement: RETURNSYM expression { SymbolTable::instance()->_return($2); }
+               | RETURNSYM { SymbolTable::instance()->_return(); }
                ;
 readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance()->read($3->list()); }
              ;
@@ -218,7 +218,7 @@ assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->
 typeStatements: typeStatement
               | typeStatements typeStatement
               ;
-typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) printf("type defined '%s'\n", $1->c_str()); }
+typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) std::cout << "type defined '" << *$1 << std::endl; }
              ;
 type: simpleType { $$ = $1; }
     | recordType { $$ = new std::string("0record"); }
@@ -233,8 +233,8 @@ recordDecls: /*empty*/
            ;
 recordDecl: identList COLONOSYM type SEMIOSYM
           ;
-identList: IDENTSYM { $$ = new StrList(*$1); }
-         | IDENTSYM commaIdentifiers { $$ = $2->add(*$1); }
+identList: IDENTSYM commaIdentifiers { $$ = $2->insert(*$1); }
+         | IDENTSYM { $$ = new StrList(*$1); }
          ;
 commaIdentifiers: commaIdentifiers commaIdentifier { $$ = $1->add(*$2); }
                 | commaIdentifier { $$ = new StrList(*$1); }
@@ -272,7 +272,7 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | lValue { $$ = SymbolTable::instance()->lValue($1); }
           ;
 expressionList: expression { $$ = new ExprList($1); }
-              | expressionList COMMAOSYM expression { $$ = $1->add($3); }
+              | expressionList COMMAOSYM expression { $1->add($3); }
               ;
 %%
 

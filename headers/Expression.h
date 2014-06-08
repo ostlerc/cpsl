@@ -60,7 +60,7 @@ class Expression
 
         void invalidType(Operation op);
         void setType(Operation op, bool isConst = true);
-        void store();
+        void store(int offset = -1, std::string reg = "");
         Type::ValueType type() { return symbol->type; }
 
     private:

@@ -32,7 +32,6 @@ SymbolTable* SymbolTable::instance()
 void SymbolTable::declare_const(std::string *name, Expression *exp)
 {
     levels.back()->addVariable(*name, exp->symbol->type);
-    exp->symbol->name = *name;
 }
 
 Expression* SymbolTable::expression(int i)
@@ -388,27 +387,38 @@ void SymbolTable::procedureParams(string* id, std::vector<Parameters> params)
         exit(1);
     }
 
-    for(Parameters p : params)
-    {
-        for(string s : p.vars)
-            cout << s << endl;
-    }
 
+    //I am using this bool_value as a flag if the procedure has been declared or not
     sym->bool_value = true;
 
+    cout << ".text" << endl;
     cout << "proc." << procId(*id, params) << ":";
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
     cout << endl;
+
     cout << "#callee prologue" << endl;
+    levels.back()->loadParams(params);
 }
 
-void SymbolTable::endProcedure()
+void SymbolTable::endProcedure(std::vector<Parameters> params)
 {
     cout << "#callee epilogue" << endl;
     cout << "\tjr $ra" << endl;
     cout << "######################" << endl << endl;
+    levels.back()->unloadParams(params);
     exitScope();
+}
+
+void SymbolTable::_return(Expression *exp)
+{
+    if(exp)
+    {
+        //TODO: make angry if this isn't a function
+        exp->loadInTemp();
+        cout << "\tadd $v0, " << exp->reg->name() << ", $zero" << endl;
+    }
+    cout << "\tjr $ra" << endl;
 }
 
 void SymbolTable::enterScope()
@@ -434,7 +444,11 @@ void SymbolTable::callProc(std::string* proc, vector<Expression*> expr_list)
     levels.back()->store(); //push registers
     push("$ra");
     push("$fp");
-    set("$fp","$sp");
+    Register *tmp = Register::FindRegister(Register::Temp);
+    set(tmp->name(), "$sp");
+    levels.back()->saveExpressions(expr_list);
+    set("$fp",tmp->name());
+    Register::ReleaseRegister(tmp);
     cout << "\tjal proc." << lbl << " # calling procedure " << *proc << " on line " << yylineno << endl;
     cout << "#caller epilogue" << endl;
     set("$sp","$fp");

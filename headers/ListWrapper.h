@@ -15,6 +15,7 @@ class ListWrapper
 
         std::vector<T>& list() { return _list; }
         ListWrapper<T>* add(T& t) { _list.push_back(t); return this; }
+        ListWrapper<T>* insert(T& t) { _list.insert(_list.begin(),t); return this; }
 
     private:
         std::vector<T> _list;

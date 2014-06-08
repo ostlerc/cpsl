@@ -76,8 +76,9 @@ class SymbolTable
     Symbol* forwardProc(std::string* id, std::vector<Parameters> params);
     void procedureHead();
     void procedureParams(std::string* id, std::vector<Parameters> params);
-    void endProcedure();
+    void endProcedure(std::vector<Parameters> params);
     void callProc(std::string* proc, std::vector<Expression*> expr_list = {});
+    void _return(Expression* exp = NULL);
 
     std::string paramsString(Parameters params);
     std::string paramsString(std::vector<Expression*>& exprs);
