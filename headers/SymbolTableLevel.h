@@ -17,15 +17,14 @@ class SymbolTableLevel
             , globalScope(isGlobal)
         {}
 
-        void load();
-        void store();
         void loadParams(std::vector<Parameters> params);
         void unloadParams(std::vector<Parameters> params);
         void saveExpressions(std::vector<Expression*> expr_list);
 
-        void addVariable(std::string id, Type::ValueType type);
+        Symbol* addVariable(std::string id, Type::ValueType type, bool named = true);
         void popVariable(std::string id, Type::ValueType type);
         Symbol* addProcedure(std::string id);
+        Symbol* addFunction(std::string id, Type::ValueType returnType);
         void checkProcedures();
         Symbol* lookupVariable(std::string id);
         void addType(std::string id, Type::ValueType type);

@@ -73,11 +73,12 @@ class SymbolTable
     Expression* unimp();
     void ignoreNextLValue();
 
-    Symbol* forwardProc(std::string* id, std::vector<Parameters> params);
-    void procedureHead();
-    void procedureParams(std::string* id, std::vector<Parameters> params);
+    Symbol* forwardProc(std::string id, std::vector<Parameters> params);
+    Symbol* forwardFunc(std::string id, std::vector<Parameters> params, std::string type);
+    void procedureParams(std::string id, std::vector<Parameters> params, std::string type = "");
     void endProcedure(std::vector<Parameters> params);
-    void callProc(std::string* proc, std::vector<Expression*> expr_list = {});
+    void callProc(std::string proc, std::vector<Expression*> expr_list = {});
+    Expression* callFunc(std::string proc, std::vector<Expression*> expr_list = {});
     void _return(Expression* exp = NULL);
 
     std::string paramsString(Parameters params);

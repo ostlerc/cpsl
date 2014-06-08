@@ -68,6 +68,7 @@ class Symbol
         bool bool_value;
         char char_value;
         Type::ValueType type;
+        Type::ValueType returnType; //used for functions
         bool global;
 };
 

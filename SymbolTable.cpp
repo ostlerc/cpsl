@@ -211,6 +211,7 @@ void SymbolTable::initialize()
 
      //check declared procedures all exist
      levels.front()->checkProcedures();
+     enterScope();
 }
 
 void SymbolTable::end()
@@ -228,6 +229,8 @@ void SymbolTable::end()
         for(unsigned int i = 0; i < c_symbols.size(); i++)
             c_symbols[i]->store();
     }
+
+    exitScope();
 }
 
 Expression* SymbolTable::assign(std::string s, Expression* e)
@@ -367,32 +370,33 @@ void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
     e->free();
 }
 
-void SymbolTable::procedureHead()
-{
-}
-
-void SymbolTable::procedureParams(string* id, std::vector<Parameters> params)
+void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std::string type)
 {
     enterScope();
     cout << endl << "######################" << endl;
 
-    Symbol *sym = findSymbol(procId(*id, params), false);
+    lbl_stack["return_type"].push(type);
+
+    Symbol *sym = findSymbol(procId(id, params), false);
     if(!sym)
     {
-        sym = forwardProc(id, params);
+        if(type.empty())
+            sym = forwardProc(id, params);
+        else
+            sym = forwardFunc(id, params, type);
     }
-    else if(sym->type != Type::Procedure)
+    else if(sym->type != Type::Procedure && sym->type != Type::Function)
     {
-        cerr << "Symbol is not of type procedure: " << *id << " on line " << yylineno << endl;
+        cerr << "Symbol is not of type function/procedure: " << id << " on line " << yylineno << endl;
         exit(1);
     }
-
 
     //I am using this bool_value as a flag if the procedure has been declared or not
     sym->bool_value = true;
 
-    cout << ".text" << endl;
-    cout << "proc." << procId(*id, params) << ":";
+    cout << "\t.text" << endl;
+    cout << "proc." << procId(id, params) << ":";
+    lbl_stack["proc_lbl"].push(procId(id, params));
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
     cout << endl;
@@ -403,22 +407,38 @@ void SymbolTable::procedureParams(string* id, std::vector<Parameters> params)
 
 void SymbolTable::endProcedure(std::vector<Parameters> params)
 {
-    cout << "#callee epilogue" << endl;
+    cout << "proc." << lbl_stack["proc_lbl"].top() << ".end:" << endl;
+    levels.back()->unloadParams(params);
     cout << "\tjr $ra" << endl;
     cout << "######################" << endl << endl;
-    levels.back()->unloadParams(params);
     exitScope();
+    lbl_stack["return_type"].pop();
+    lbl_stack["proc_lbl"].pop();
 }
 
 void SymbolTable::_return(Expression *exp)
 {
+    std::string type = lbl_stack["return_type"].top();
+    if(!!exp == type.empty())
+    {
+        cerr << "Missing or extra type on line " << yylineno << endl;
+        exit(1);
+    }
+
     if(exp)
     {
-        //TODO: make angry if this isn't a function
+        if(Type::fromString(type) != Type::nonconst_val(exp->symbol->type))
+        {
+            cerr << "Incorrect type on line " << yylineno << endl;
+            cerr << "expecting type " << Type::toString(exp->symbol->type) << endl;
+            exit(1);
+        }
+
         exp->loadInTemp();
         cout << "\tadd $v0, " << exp->reg->name() << ", $zero" << endl;
+        exp->free();
     }
-    cout << "\tjr $ra" << endl;
+    cout << "\tj proc." << lbl_stack["proc_lbl"].top() << ".end" << endl;
 }
 
 void SymbolTable::enterScope()
@@ -431,17 +451,16 @@ void SymbolTable::exitScope()
     levels.pop_back();
 }
 
-void SymbolTable::callProc(std::string* proc, vector<Expression*> expr_list)
+void SymbolTable::callProc(std::string proc, vector<Expression*> expr_list)
 {
-    std::string lbl = procId(*proc, expr_list);
+    std::string lbl = procId(proc, expr_list);
     Symbol *s = findSymbol(lbl);
     if(s->type != Type::Procedure)
     {
-        cerr << "type of variable " << *proc << " is not a procedure on line " << yylineno << endl;
+        cerr << "type of variable " << proc << " is not a procedure on line " << yylineno << endl;
         exit(1);
     }
     cout << "#caller prologue" << endl;
-    levels.back()->store(); //push registers
     push("$ra");
     push("$fp");
     Register *tmp = Register::FindRegister(Register::Temp);
@@ -449,18 +468,54 @@ void SymbolTable::callProc(std::string* proc, vector<Expression*> expr_list)
     levels.back()->saveExpressions(expr_list);
     set("$fp",tmp->name());
     Register::ReleaseRegister(tmp);
-    cout << "\tjal proc." << lbl << " # calling procedure " << *proc << " on line " << yylineno << endl;
+    cout << "\tjal proc." << lbl << " # calling procedure " << proc << " on line " << yylineno << endl;
     cout << "#caller epilogue" << endl;
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
-    levels.back()->load(); //load registers
 }
 
-Symbol* SymbolTable::forwardProc(std::string* id, std::vector<Parameters> params)
+Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_list)
 {
-    Symbol* s = levels.front()->addProcedure(procId(*id, params));
+    std::string lbl = procId(func, expr_list);
+    Symbol *s = findSymbol(lbl);
 
+    if(s->type != Type::Function)
+    {
+        cerr << "variable '" << func << "' is not of type 'function' on line " << yylineno << endl;
+        exit(1);
+    }
+
+    cout << "#caller prologue" << endl;
+    push("$ra");
+    push("$fp");
+    Register *tmp = Register::FindRegister(Register::Temp);
+    set(tmp->name(), "$sp");
+    levels.back()->saveExpressions(expr_list);
+    set("$fp",tmp->name());
+    cout << "\tjal proc." << lbl << " # calling procedure " << func << " on line " << yylineno << endl;
+    cout << "#caller epilogue" << endl;
+    set("$sp","$fp");
+    pop("$fp");
+    pop("$ra");
+
+    Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->returnType, false);
+    Expression *ret = new Expression(ret_sym);
+    set(tmp->name(), "$v0");
+    ret->reg = tmp;
+    ret->store(-1, "$fp");
+    return ret;
+}
+
+Symbol* SymbolTable::forwardProc(std::string id, std::vector<Parameters> params)
+{
+    Symbol* s = levels.front()->addProcedure(procId(id, params));
+    return s;
+}
+
+Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params, std::string type)
+{
+    Symbol* s = levels.front()->addFunction(procId(id, params), Type::fromString(type));
     return s;
 }
 

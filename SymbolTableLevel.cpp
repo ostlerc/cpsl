@@ -35,6 +35,15 @@ Symbol* SymbolTableLevel::addProcedure(std::string id)
     return variables[id];
 }
 
+Symbol* SymbolTableLevel::addFunction(std::string id, Type::ValueType returnType)
+{
+    variables[id] = new Symbol(id, -1, Type::Function);
+    //I am using this bool_value as a flag if the procedure has been declared or not
+    variables[id]->bool_value = false;
+    variables[id]->returnType = returnType;
+    return variables[id];
+}
+
 void SymbolTableLevel::checkProcedures()
 {
     for(auto& v : variables)
@@ -88,7 +97,7 @@ void SymbolTableLevel::popVariable(std::string id, Type::ValueType type)
     }
 }
 
-void SymbolTableLevel::addVariable(std::string id, Type::ValueType type)
+Symbol* SymbolTableLevel::addVariable(std::string id, Type::ValueType type, bool named)
 {
     checkId(id);
 
@@ -100,7 +109,7 @@ void SymbolTableLevel::addVariable(std::string id, Type::ValueType type)
     if(!Type::isConst(type))
     {
 
-        if(globalScope)
+        if(globalScope && named)
         {
             offset += size;
             cout << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
@@ -112,7 +121,10 @@ void SymbolTableLevel::addVariable(std::string id, Type::ValueType type)
         }
     }
 
-    variables[id] = sym;
+    if(named)
+        variables[id] = sym;
+
+    return sym;
 }
 
 void SymbolTableLevel::saveExpressions(std::vector<Expression*> expr_list)
@@ -142,12 +154,4 @@ void SymbolTableLevel::addType(std::string id, Type::ValueType type)
 Type::ValueType SymbolTableLevel::lookupType(std::string id)
 {
     return Type::fromString(id);
-}
-
-void SymbolTableLevel::load()
-{
-}
-
-void SymbolTableLevel::store()
-{
 }

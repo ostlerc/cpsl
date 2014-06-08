@@ -62,6 +62,7 @@ extern "C" int yylex();
 %type <str_val> forExpr;
 %type <str_val> repeatHead;
 %type <param_list> procedureParams;
+%type <param_list> functionParams;
 %type <expr_list> expressionList;
 %type <str_val> commaIdentifier;
 %type <str_list> commaIdentifiers;
@@ -116,14 +117,16 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc($2,$4->list()); }
+procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc(*$2,$4->list()); }
              | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure($2->list()); }
              ;
-procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams($1,$3->list()); }
+procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list()); }
                ;
-functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM
-            | FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM body SEMIOSYM
+functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardFunc(*$2,$4->list(), *$7); }
+            | FUNCTIONSYM functionParams body SEMIOSYM { SymbolTable::instance()->endProcedure($2->list()); }
             ;
+functionParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list(), *$6); }
+              ;
 formalParameters: /*empty*/ { $$ = new ParamList; }
                 | formalParameter { $$ = new ParamList(*$1); }
                 | formalParameters SEMIOSYM formalParameter { $$ = $1->add(*$3); }
@@ -205,8 +208,8 @@ readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance(
              ;
 writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3->list()); }
               ;
-procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc($1); /* procedure call */ }
-             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc($1, $3->list()); /* procedure call */ }
+procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc(*$1); /* procedure call */ }
+             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc(*$1, $3->list()); /* procedure call */ }
              ;
 nullStatement: /* empty */
              ;
@@ -263,8 +266,8 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | TILDEOSYM expression { $$ = $2->exec(Expression::Tilde); }
           | MINUSOSYM expression %prec UMINUSOSYM { $$ = $2->exec(Expression::Negate); }
           | LPARENOSYM expression RPARENOSYM { $$ = $2; }
-          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->unimp(); /* function call */ }
-          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->unimp(); /* function call (args) */ }
+          | IDENTSYM LPARENOSYM RPARENOSYM { $$ = SymbolTable::instance()->callFunc(*$1); /* function call */ }
+          | IDENTSYM LPARENOSYM expressionList RPARENOSYM { $$ = SymbolTable::instance()->callFunc(*$1, $3->list()); /* function call (args) */ }
           | CHRSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Chr); }
           | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Ord); }
           | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Pred); }
