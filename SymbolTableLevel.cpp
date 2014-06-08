@@ -3,12 +3,14 @@
 #include "Expression.h"
 #include "Type.h"
 #include "Symbol.h"
+#include "Log.h"
 
 #include <iostream>
 
 using namespace std;
 
 extern int yylineno;
+extern Log* cpsl_log;
 
 void SymbolTableLevel::checkId(std::string id)
 {
@@ -93,7 +95,7 @@ void SymbolTableLevel::popVariable(std::string id, Type::ValueType type)
     if(!Type::isConst(type))
     {
         offset += size;
-        cout << "\tadd $sp $sp " << size << " # popping " << id << "(" << offset << ") on line " << yylineno << endl;
+        cpsl_log->out << "\tadd $sp $sp " << size << " # popping " << id << "(" << offset << ") on line " << yylineno << endl;
     }
 }
 
@@ -112,12 +114,12 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type::ValueType type, bool
         if(globalScope && named)
         {
             offset += size;
-            cout << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
+            cpsl_log->out << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
         }
         else
         {
             offset -= size;
-            cout << "\tadd $sp $sp " << -size << " # " << id << "(" << offset << ") on line " << yylineno << endl;
+            cpsl_log->out << "\tadd $sp $sp " << -size << " # " << id << "(" << offset << ") on line " << yylineno << endl;
         }
     }
 
@@ -132,7 +134,7 @@ void SymbolTableLevel::saveExpressions(std::vector<Expression*> expr_list)
     int t_offset = 0;
     for(Expression *e : expr_list)
     {
-        cout << "#argument " << e->toString() << endl;
+        cpsl_log->out << "#argument " << e->toString() << endl;
         e->store(t_offset, "$sp");
         t_offset -= 4;
     }

@@ -9,10 +9,12 @@
 
 #include "SymbolTable.h"
 #include "Type.h"
+#include "Log.h"
 
 int bison_verbose = 0;
 int yyerror(const char* s);
 extern int yylineno;
+extern Log* log;
 extern "C" int yylex();
 %}
 

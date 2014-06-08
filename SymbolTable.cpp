@@ -2,6 +2,7 @@
 #include "SymbolTableLevel.h"
 #include "Expression.h"
 #include "Type.h"
+#include "Log.h"
 
 #include <iostream>
 #include <algorithm>
@@ -10,6 +11,7 @@ using namespace std;
 
 extern int yylineno; // defined and maintained in lex.cpp
 extern bool bison_verbose;
+extern Log* cpsl_log;
 
 SymbolTable::SymbolTable()
     : ignore_next_lval(false)
@@ -193,8 +195,8 @@ void SymbolTable::read(vector<Symbol*> sym_list)
 void SymbolTable::begin()
 {
     initialize();
-    cout << "\t.text" << endl;
-    cout << "main:\n";
+    cpsl_log->out << "\t.text" << endl;
+    cpsl_log->out << "main:\n";
 }
 
 void SymbolTable::initialize()
@@ -216,12 +218,12 @@ void SymbolTable::initialize()
 
 void SymbolTable::end()
 {
-    cout << "\tli $v0, 10" << endl;
-    cout << "\tsyscall" << endl;
+    cpsl_log->out << "\tli $v0, 10" << endl;
+    cpsl_log->out << "\tsyscall" << endl;
 
     if(c_symbols.size() > 0)
     {
-        cout << "\t.data" << endl;
+        cpsl_log->out << "\t.data" << endl;
 
         if(bison_verbose)
             cout << "there are " << c_symbols.size() << " constant entries to add" << endl;
@@ -256,7 +258,7 @@ void SymbolTable::ignoreNextLValue()
 string* SymbolTable::whileStart()
 {
     string *startLbl = new string(Symbol::GetLabel("WS"));
-    cout <<  *startLbl << ":" << endl;
+    cpsl_log->out <<  *startLbl << ":" << endl;
     return startLbl;
 }
 
@@ -264,7 +266,7 @@ string* SymbolTable::whileExpr(Expression* e)
 {
     e->loadInTemp();
     string *endLbl = new string(Symbol::GetLabel("WE"));
-    cout << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << ".stop # exit 'while' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << ".stop # exit 'while' branch expr: " << e->toString() << " on line " << yylineno << endl;
     lbl_stack["stop"].push(*endLbl);
 
     e->free();
@@ -274,15 +276,15 @@ string* SymbolTable::whileExpr(Expression* e)
 
 void SymbolTable::whileStatement(std::string* startLbl, std::string *endLbl)
 {
-    cout << "\tj " << *startLbl << " # end while on line " << yylineno << endl;
-    cout << *endLbl << ".stop:" << endl;
+    cpsl_log->out << "\tj " << *startLbl << " # end while on line " << yylineno << endl;
+    cpsl_log->out << *endLbl << ".stop:" << endl;
     lbl_stack["stop"].pop();
 }
 
 string* SymbolTable::ifExpr(Expression* e)
 {
     string *endLbl = new string(Symbol::GetLabel("IfE"));
-    cout << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
     e->free();
 
     return endLbl;
@@ -291,51 +293,51 @@ string* SymbolTable::ifExpr(Expression* e)
 void SymbolTable::ifCondition(std::string* endLbl)
 {
     string endifLbl = Symbol::GetLabel("EIf");
-    cout << "\tj " << endifLbl << " #end 'if' on line " << yylineno << endl;
+    cpsl_log->out << "\tj " << endifLbl << " #end 'if' on line " << yylineno << endl;
     lbl_stack["if"].push(endifLbl);
 
-    cout << *endLbl << ":" << endl;
+    cpsl_log->out << *endLbl << ":" << endl;
 }
 
 void SymbolTable::ifStatement()
 {
     string lbl = lbl_stack["if"].top();
     lbl_stack["if"].pop();
-    cout << lbl << ":" << " # end of 'if' statement on line " << yylineno << endl;
+    cpsl_log->out << lbl << ":" << " # end of 'if' statement on line " << yylineno << endl;
 }
 
 string* SymbolTable::elseifExpr(Expression *e)
 {
     string *lbl = new string(Symbol::GetLabel("IfE"));
-    cout << "\tbeq " << e->reg->name() << ", $zero, " << *lbl << " # exit 'elseif' branch expr: " << e->toString() << " on line " << yylineno << endl;
+    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *lbl << " # exit 'elseif' branch expr: " << e->toString() << " on line " << yylineno << endl;
     e->free();
     return lbl;
 }
 
 void SymbolTable::elseifStatement(std::string* lbl)
 {
-    cout << "\tj " << lbl_stack["if"].top() << endl;
-    cout << *lbl << ": " << " # end 'elseif' from line: " << yylineno << endl;
+    cpsl_log->out << "\tj " << lbl_stack["if"].top() << endl;
+    cpsl_log->out << *lbl << ": " << " # end 'elseif' from line: " << yylineno << endl;
 }
 
 void SymbolTable::stop()
 {
-    cout << "\tli $v0, 10 # stopping on line " << yylineno << endl;
-    cout << "\tsyscall" << endl;
+    cpsl_log->out << "\tli $v0, 10 # stopping on line " << yylineno << endl;
+    cpsl_log->out << "\tsyscall" << endl;
 }
 
 string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operation op)
 {
     string *lbl = new string(Symbol::GetLabel("For"));
-    cout << "\tj " << *lbl << ".begin " << endl;
-    cout << *lbl << ".start:" << endl;
+    cpsl_log->out << "\tj " << *lbl << ".begin " << endl;
+    cpsl_log->out << *lbl << ".start:" << endl;
 
     Expression *t = lhs->exec(op);
     t->store();
 
-    cout << *lbl << ".begin:" << endl;
+    cpsl_log->out << *lbl << ".begin:" << endl;
     Expression *lt = rhs->exec(lhs, op == Expression::Succ ? Expression::Gte : Expression::Lte);
-    cout << "\tbeq " << lt->reg->name() << ", $zero " << *lbl << ".stop # line " << yylineno << endl;
+    cpsl_log->out << "\tbeq " << lt->reg->name() << ", $zero " << *lbl << ".stop # line " << yylineno << endl;
     lbl_stack["stop"].push(*lbl);
     lt->free();
 
@@ -348,15 +350,15 @@ string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Opera
 
 void SymbolTable::forStatement(string* lbl)
 {
-    std::cout << "\tj " << *lbl << ".start" << endl;
-    std::cout << *lbl << ".stop: # end for on line " << yylineno << std::endl;
+    cpsl_log->out << "\tj " << *lbl << ".start" << endl;
+    cpsl_log->out << *lbl << ".stop: # end for on line " << yylineno << std::endl;
     lbl_stack["stop"].pop();
 }
 
 std::string* SymbolTable::repeatHead()
 {
     string *lbl = new string(Symbol::GetLabel("RS"));
-    cout <<  *lbl << ":" << endl;
+    cpsl_log->out <<  *lbl << ":" << endl;
     lbl_stack["stop"].push(*lbl);
     return lbl;
 }
@@ -364,8 +366,8 @@ std::string* SymbolTable::repeatHead()
 void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
 {
     e->loadInTemp();
-    cout << "\tbeq " << e->reg->name() << ", $zero " << *lbl << "# end repeat statemnt on line " << yylineno << endl;
-    cout << *lbl << ".stop:" << endl;
+    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero " << *lbl << "# end repeat statemnt on line " << yylineno << endl;
+    cpsl_log->out << *lbl << ".stop:" << endl;
     lbl_stack["stop"].pop();
     e->free();
 }
@@ -373,7 +375,7 @@ void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
 void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std::string type)
 {
     enterScope();
-    cout << endl << "######################" << endl;
+    cpsl_log->out << endl << "######################" << endl;
 
     lbl_stack["return_type"].push(type);
 
@@ -394,23 +396,23 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std
     //I am using this bool_value as a flag if the procedure has been declared or not
     sym->bool_value = true;
 
-    cout << "\t.text" << endl;
-    cout << "proc." << procId(id, params) << ":";
+    cpsl_log->out << "\t.text" << endl;
+    cpsl_log->out << "proc." << procId(id, params) << ":";
     lbl_stack["proc_lbl"].push(procId(id, params));
     if(bison_verbose)
         cout << " #declaring procedure on line " << yylineno;
-    cout << endl;
+    cpsl_log->out << endl;
 
-    cout << "#callee prologue" << endl;
+    cpsl_log->out << "#callee procpsl_logue" << endl;
     levels.back()->loadParams(params);
 }
 
 void SymbolTable::endProcedure(std::vector<Parameters> params)
 {
-    cout << "proc." << lbl_stack["proc_lbl"].top() << ".end:" << endl;
+    cpsl_log->out << "proc." << lbl_stack["proc_lbl"].top() << ".end:" << endl;
     levels.back()->unloadParams(params);
-    cout << "\tjr $ra" << endl;
-    cout << "######################" << endl << endl;
+    cpsl_log->out << "\tjr $ra" << endl;
+    cpsl_log->out << "######################" << endl << endl;
     exitScope();
     lbl_stack["return_type"].pop();
     lbl_stack["proc_lbl"].pop();
@@ -435,10 +437,10 @@ void SymbolTable::_return(Expression *exp)
         }
 
         exp->loadInTemp();
-        cout << "\tadd $v0, " << exp->reg->name() << ", $zero" << endl;
+        cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero" << endl;
         exp->free();
     }
-    cout << "\tj proc." << lbl_stack["proc_lbl"].top() << ".end" << endl;
+    cpsl_log->out << "\tj proc." << lbl_stack["proc_lbl"].top() << ".end" << endl;
 }
 
 void SymbolTable::enterScope()
@@ -467,7 +469,7 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
         exit(1);
     }
 
-    cout << "#caller prologue" << endl;
+    cpsl_log->out << "#caller procpsl_logue" << endl;
     push("$ra");
     push("$fp");
     Register *tmp = Register::FindRegister(Register::Temp);
@@ -475,8 +477,8 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     levels.back()->saveExpressions(expr_list);
     set("$fp",tmp->name());
     Register::ReleaseRegister(tmp);
-    cout << "\tjal proc." << lbl << " # calling procedure " << proc << " on line " << yylineno << endl;
-    cout << "#caller epilogue" << endl;
+    cpsl_log->out << "\tjal proc." << lbl << " # calling procedure " << proc << " on line " << yylineno << endl;
+    cpsl_log->out << "#caller epicpsl_logue" << endl;
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
@@ -512,19 +514,19 @@ Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params,
 
 void SymbolTable::push(std::string reg)
 {
-    cout << "\tsw " << reg << ", 0($sp) #push onto stack" << endl;
-    cout << "\tadd $sp, $sp, -4" << endl;
+    cpsl_log->out << "\tsw " << reg << ", 0($sp) #push onto stack" << endl;
+    cpsl_log->out << "\tadd $sp, $sp, -4" << endl;
 }
 
 void SymbolTable::pop(std::string reg)
 {
-    cout << "\tadd $sp, $sp, 4" << endl;
-    cout << "\tlw " << reg << ", 0($sp) #pop off stack" << endl;
+    cpsl_log->out << "\tadd $sp, $sp, 4" << endl;
+    cpsl_log->out << "\tlw " << reg << ", 0($sp) #pop off stack" << endl;
 }
 
 void SymbolTable::set(std::string lhs, std::string rhs)
 {
-    cout << "\tadd " << lhs << ", " << rhs << ", $zero" << endl;
+    cpsl_log->out << "\tadd " << lhs << ", " << rhs << ", $zero" << endl;
 }
 
 std::string SymbolTable::paramsString(Parameters params)

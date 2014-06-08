@@ -1,4 +1,5 @@
 #include "Expression.h"
+#include "Log.h"
 
 #include <iostream>
 
@@ -6,6 +7,7 @@ using namespace std;
 
 extern int yylineno;// defined and maintained in lex.cpp
 extern bool bison_verbose;
+extern Log* cpsl_log;
 
 Expression::Expression(Expression* e)
     : symbol(new Symbol(e->symbol))
@@ -70,7 +72,7 @@ string Expression::toString(Operation op)
 Expression* Expression::exec(Expression* e, Operation op)
 {
     if(bison_verbose)
-        cout << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
+        cpsl_log->out << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 
     int rhs_v = 0;
     switch(e->symbol->type)
@@ -114,7 +116,7 @@ Expression* Expression::exec(Expression* e, Operation op)
         }
 
         if(bison_verbose)
-            cout << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
+            cpsl_log->out << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
 
         switch(op)
         {
@@ -214,44 +216,44 @@ Expression* Expression::exec(Expression* e, Operation op)
                 switch(op)
                 {
                     case Add:
-                        cout << "\tadd " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tadd " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Sub:
-                        cout << "\tsub " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tsub " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Mul:
-                        cout << "\tmul " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tmul " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Div:
-                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Mod:
-                        cout << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
-                        cout << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
+                        cpsl_log->out << "\tdiv " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tmfhi " << reg->name() << " # get quotient of div" << endl;
                         break;
                     case Eq:
-                        cout << "\tseq " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tseq " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Ne:
-                        cout << "\tsne " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tsne " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Lt:
-                        cout << "\tslt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tslt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Gt:
-                        cout << "\tsgt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tsgt " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Lte:
-                        cout << "\tsle " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tsle " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Gte:
-                        cout << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tsge " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Bar:
-                        cout << "\tor " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tor " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     case Amp:
-                        cout << "\tand " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
+                        cpsl_log->out << "\tand " << reg->name() << ", " << reg->name() << ", " << rhs_str << endl;
                         break;
                     default:
                         {
@@ -325,7 +327,7 @@ Expression* Expression::exec(Operation op)
                 else
                 {
                     loadInTemp();
-                    cout << "\tneg " << reg->name() << ", " << reg->name() << " #negate " << symbol->name << " on line: " << yylineno << endl;
+                    cpsl_log->out << "\tneg " << reg->name() << ", " << reg->name() << " #negate " << symbol->name << " on line: " << yylineno << endl;
                 }
             }
             break;
@@ -358,7 +360,7 @@ Expression* Expression::exec(Operation op)
                 else
                 {
                     loadInTemp();
-                    cout << "\tnot " << reg->name() << ", " << reg->name() << " #bitwise NOT " << symbol->name << " on line: " << yylineno << endl;
+                    cpsl_log->out << "\tnot " << reg->name() << ", " << reg->name() << " #bitwise NOT " << symbol->name << " on line: " << yylineno << endl;
                 }
             }
             break;
@@ -419,61 +421,61 @@ void Expression::print()
     {
         case Type::Const_Integer:
             {
-                cout << "\tli $v0, 1" << endl;
-                cout << "\tli $a0, " << symbol->int_value << " #" << toString() << " line: " << yylineno << endl;
+                cpsl_log->out << "\tli $v0, 1" << endl;
+                cpsl_log->out << "\tli $a0, " << symbol->int_value << " #" << toString() << " line: " << yylineno << endl;
             }
             break;
         case Type::Const_String:
         case Type::Const_Char:
             {
-                cout << "\tli $v0, 4" << endl;
-                cout << "\tla $a0, " << symbol->name << " # " << symbol->str_value << " line: " << yylineno << endl;
+                cpsl_log->out << "\tli $v0, 4" << endl;
+                cpsl_log->out << "\tla $a0, " << symbol->name << " # " << symbol->str_value << " line: " << yylineno << endl;
             }
             break;
         case Type::Integer:
             {
-                cout << "\tli $v0 1" << endl;
+                cpsl_log->out << "\tli $v0 1" << endl;
                 if(reg)
                 {
-                    cout << "\tadd $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
+                    cpsl_log->out << "\tadd $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << endl;
+                    cpsl_log->out << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << endl;
                 }
             }
             break;
         case Type::Bool:
             {
-                cout << "\tli $v0 1" << endl;
+                cpsl_log->out << "\tli $v0 1" << endl;
                 if(reg)
                 {
-                    cout << "\tsne $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << " on line " << yylineno << endl;
+                    cpsl_log->out << "\tsne $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << " on line " << yylineno << endl;
                 }
                 else
                 {
-                    cout << "\tlb $a0, " << symbol->offset << "(" << symbol->reg() << ") # load " << toString() << " on line " << yylineno << endl;
-                    cout << "\tsne $a0, $a0, 0 # Boolean var set only to 1 or 0" << endl;
+                    cpsl_log->out << "\tlb $a0, " << symbol->offset << "(" << symbol->reg() << ") # load " << toString() << " on line " << yylineno << endl;
+                    cpsl_log->out << "\tsne $a0, $a0, 0 # Boolean var set only to 1 or 0" << endl;
                 }
             }
             break;
         case Type::Char:
             {
-                cout << "\tli $v0 11" << endl; //print character
+                cpsl_log->out << "\tli $v0 11" << endl; //print character
                 if(reg)
                 {
-                    cout << "\tadd $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
+                    cpsl_log->out << "\tadd $a0, " << reg->name() << ", 0 # Set printing register for symbol " << symbol->toString() << endl;
                 }
                 else
                 {
-                    cout << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << " on line " << yylineno << endl;
+                    cpsl_log->out << "\tlw $a0, " << symbol->offset << "(" << symbol->reg() << ") # Load " << toString() << " on line " << yylineno << endl;
                 }
             }
             break;
         case Type::Const_Bool:
             {
-                cout << "\tli $v0, 1" << endl;
-                cout << "\tli $a0, " << symbol->bool_value << " #" << toString() << " line: " << yylineno << endl;
+                cpsl_log->out << "\tli $v0, 1" << endl;
+                cpsl_log->out << "\tli $a0, " << symbol->bool_value << " #" << toString() << " line: " << yylineno << endl;
             }
             break;
         case Type::Unknown:
@@ -495,7 +497,7 @@ void Expression::print()
             break;
     }
 
-    cout << "\tsyscall" << endl;
+    cpsl_log->out << "\tsyscall" << endl;
     free();
 }
 
@@ -510,38 +512,38 @@ void Expression::loadInTemp()
     {
         case Type::Integer:
             {
-                cout << "\tlw " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
+                cpsl_log->out << "\tlw " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Bool:
         case Type::Char:
             {
-                cout << "\tlb " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
+                cpsl_log->out << "\tlb " << reg->name() << ", " << symbol->offset << "(" << symbol->reg() << ") "
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_Integer:
             {
-                cout << "\tli " << reg->name() << ", " << symbol->int_value
+                cpsl_log->out << "\tli " << reg->name() << ", " << symbol->int_value
                     << "#Loading const integer into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_Bool:
             {
-                cout << "\tli " << reg->name() << ", " << symbol->bool_value
+                cpsl_log->out << "\tli " << reg->name() << ", " << symbol->bool_value
                     << "#Loading const bool into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_String:
             {
-                cout << "\tla " << reg->name() << ", " << symbol->name
+                cpsl_log->out << "\tla " << reg->name() << ", " << symbol->name
                     << " # Loading " << toString() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Const_Char:
             {
-                cout << "\tli " << reg->name() << ", " << (int)symbol->char_value
+                cpsl_log->out << "\tli " << reg->name() << ", " << (int)symbol->char_value
                     << " # Loading " << toString() << " on line: " << yylineno << endl;
             }
             break;
@@ -582,12 +584,12 @@ void Expression::store(int offset, std::string regstr)
         case Type::Bool:
         case Type::Char:
         {
-            cout << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cpsl_log->out << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
         break;
         default:
         {
-            cout << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
         }
     }
 
@@ -621,12 +623,12 @@ void Expression::assign(Symbol* s)
         case Type::Bool:
         case Type::Char:
             {
-                cout << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cpsl_log->out << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
         default:
             {
-                cout << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cpsl_log->out << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
         break;
     }
@@ -643,7 +645,7 @@ void Expression::assign(Symbol* s)
 void Expression::setType(Operation op, bool isConst)
 {
     if(bison_verbose)
-        cout << "setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
+        cpsl_log->out << "setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
 
     Type::ValueType t = Type::Unknown;
     switch(op)

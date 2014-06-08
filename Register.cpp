@@ -1,4 +1,5 @@
 #include "Register.h"
+#include "Log.h"
 
 #include <iostream>
 
@@ -12,6 +13,7 @@ vector<Register*> Register::save_registers;
 
 extern int yylineno;// defined and maintained in lex.cpp
 extern bool bison_verbose;
+extern Log* cpsl_log;
 
 Register::Register(int reg_num, RegisterType type)
     : reg_num(reg_num)

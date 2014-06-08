@@ -6,11 +6,13 @@
 #include "SymbolTable.h"
 #include "Register.h"
 #include "Type.h"
+#include "Log.h"
 
 using namespace std;
 
 extern bool bison_verbose;
 extern int yylineno;
+extern Log* cpsl_log;
 
 Symbol::Symbol(Symbol* s)
 {
@@ -54,26 +56,26 @@ void Symbol::read()
     {
         case Type::Integer:
             {
-                cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
-                cout << "\tsyscall" << endl;
+                cpsl_log->out << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
+                cpsl_log->out << "\tsyscall" << endl;
 
-                cout << "\tsw $v0, " << offset << "(" << reg() << ")" << endl;
+                cpsl_log->out << "\tsw $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Char:
             {
-                cout << "\tli $v0, 12 #read " << toString() << " on line: " << yylineno << endl;
-                cout << "\tsyscall" << endl;
+                cpsl_log->out << "\tli $v0, 12 #read " << toString() << " on line: " << yylineno << endl;
+                cpsl_log->out << "\tsyscall" << endl;
 
-                cout << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
+                cpsl_log->out << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Bool:
             {
-                cout << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
-                cout << "\tsyscall" << endl;
+                cpsl_log->out << "\tli $v0, 5 #read " << toString() << " on line: " << yylineno << endl;
+                cpsl_log->out << "\tsyscall" << endl;
 
-                cout << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
+                cpsl_log->out << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
         case Type::Unknown:
@@ -123,7 +125,7 @@ void Symbol::store()
     {
         case Type::Const_String:
         case Type::Const_Char:
-            cout << name << ":\t.asciiz " << str_value << endl;
+            cpsl_log->out << name << ":\t.asciiz " << str_value << endl;
             break;
         default:
             {
