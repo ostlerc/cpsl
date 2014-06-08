@@ -453,13 +453,20 @@ void SymbolTable::exitScope()
 
 void SymbolTable::callProc(std::string proc, vector<Expression*> expr_list)
 {
+    procBoiler(proc, expr_list, Type::Procedure);
+}
+
+Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list, Type::ValueType fType)
+{
     std::string lbl = procId(proc, expr_list);
     Symbol *s = findSymbol(lbl);
-    if(s->type != Type::Procedure)
+
+    if(s->type != fType)
     {
-        cerr << "type of variable " << proc << " is not a procedure on line " << yylineno << endl;
+        cerr << "variable '" << proc << "' is not of type '" << Type::toString(fType) << "' on line " << yylineno << endl;
         exit(1);
     }
+
     cout << "#caller prologue" << endl;
     push("$ra");
     push("$fp");
@@ -473,34 +480,18 @@ void SymbolTable::callProc(std::string proc, vector<Expression*> expr_list)
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
+
+    return s;
 }
 
 Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_list)
 {
-    std::string lbl = procId(func, expr_list);
-    Symbol *s = findSymbol(lbl);
+    Symbol *s = procBoiler(func, expr_list, Type::Function);
 
-    if(s->type != Type::Function)
-    {
-        cerr << "variable '" << func << "' is not of type 'function' on line " << yylineno << endl;
-        exit(1);
-    }
-
-    cout << "#caller prologue" << endl;
-    push("$ra");
-    push("$fp");
-    Register *tmp = Register::FindRegister(Register::Temp);
-    set(tmp->name(), "$sp");
-    levels.back()->saveExpressions(expr_list);
-    set("$fp",tmp->name());
-    cout << "\tjal proc." << lbl << " # calling procedure " << func << " on line " << yylineno << endl;
-    cout << "#caller epilogue" << endl;
-    set("$sp","$fp");
-    pop("$fp");
-    pop("$ra");
-
+    //Assign return value to expression
     Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->returnType, false);
     Expression *ret = new Expression(ret_sym);
+    Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
     ret->reg = tmp;
     ret->store(-1, "$fp");

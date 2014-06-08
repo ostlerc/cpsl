@@ -79,6 +79,7 @@ class SymbolTable
     void endProcedure(std::vector<Parameters> params);
     void callProc(std::string proc, std::vector<Expression*> expr_list = {});
     Expression* callFunc(std::string proc, std::vector<Expression*> expr_list = {});
+    Symbol* procBoiler(std::string proc, std::vector<Expression*> expr_list, Type::ValueType fType);
     void _return(Expression* exp = NULL);
 
     std::string paramsString(Parameters params);
