@@ -17,6 +17,7 @@ SymbolTable::SymbolTable()
     : ignore_next_lval(false)
 {
     levels.emplace_back(new SymbolTableLevel(true));
+    initialize();
 }
 
 SymbolTable::~SymbolTable()
@@ -194,9 +195,9 @@ void SymbolTable::read(vector<Symbol*> sym_list)
 
 void SymbolTable::begin()
 {
-    initialize();
     cpsl_log->out << "\t.text" << endl;
     cpsl_log->out << "main:\n";
+    enterScope();
 }
 
 void SymbolTable::initialize()
@@ -213,7 +214,6 @@ void SymbolTable::initialize()
 
      //check declared procedures all exist
      levels.front()->checkProcedures();
-     enterScope();
 }
 
 void SymbolTable::end()
@@ -392,6 +392,19 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std
         cerr << "Symbol is not of type function/procedure: " << id << " on line " << yylineno << endl;
         exit(1);
     }
+    else if(sym->bool_value == true)
+    {
+        cerr << "Redeclaration of " << id << " on line " << yylineno << endl;
+        exit(1);
+    }
+    else if(sym->type == Type::Function)
+    {
+        if(sym->returnType != Type::fromString(type))
+        {
+            cerr << "incorrect return types for function " << id << ". Expecting type " << Type::toString(sym->returnType) << " on line " << yylineno << endl;
+            exit(1);
+        }
+    }
 
     //I am using this bool_value as a flag if the procedure has been declared or not
     sym->bool_value = true;
@@ -429,6 +442,8 @@ void SymbolTable::_return(Expression *exp)
 
     if(exp)
     {
+        if(bison_verbose)
+            cout << "comparing" << type << Type::toString(exp->symbol->type) << " on line " << yylineno << endl;
         if(Type::fromString(type) != Type::nonconst_val(exp->symbol->type))
         {
             cerr << "Incorrect type on line " << yylineno << endl;
@@ -465,7 +480,10 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
 
     if(s->type != fType)
     {
-        cerr << "variable '" << proc << "' is not of type '" << Type::toString(fType) << "' on line " << yylineno << endl;
+        if(s->type == Type::Function)
+            cerr << "function '" << proc << "' used as a procedure on line " << yylineno << endl;
+        else
+            cerr << "variable '" << proc << "' is not of type '" << Type::toString(fType) << "' on line " << yylineno << endl;
         exit(1);
     }
 
@@ -490,6 +508,8 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
 {
     Symbol *s = procBoiler(func, expr_list, Type::Function);
 
+    if(bison_verbose)
+        cout << "return type for function " << func << " is " << Type::toString(s->returnType) << " on line " << yylineno << endl;
     //Assign return value to expression
     Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->returnType, false);
     Expression *ret = new Expression(ret_sym);
@@ -500,15 +520,30 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     return ret;
 }
 
+
 Symbol* SymbolTable::forwardProc(std::string id, std::vector<Parameters> params)
 {
-    Symbol* s = levels.front()->addProcedure(procId(id, params));
+    Symbol *s = findSymbol(procId(id, params), false);
+    if(s)
+    {
+        cerr << "Re-forward declaration of procedure " << id << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    s = levels.front()->addProcedure(procId(id, params));
     return s;
 }
 
 Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params, std::string type)
 {
-    Symbol* s = levels.front()->addFunction(procId(id, params), Type::fromString(type));
+    Symbol *s = findSymbol(procId(id, params), false);
+    if(s)
+    {
+        cerr << "Re-forward declaration of function " << id << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    s = levels.front()->addFunction(procId(id, params), Type::fromString(type));
     return s;
 }
 

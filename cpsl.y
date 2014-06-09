@@ -210,8 +210,8 @@ readStatement: READSYM LPARENOSYM lValueList RPARENOSYM { SymbolTable::instance(
              ;
 writeStatement: WRITESYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->print($3->list()); }
               ;
-procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc(*$1); /* procedure call */ }
-             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc(*$1, $3->list()); /* procedure call */ }
+procedureCall: IDENTSYM LPARENOSYM RPARENOSYM { SymbolTable::instance()->callProc(*$1); }
+             | IDENTSYM LPARENOSYM expressionList RPARENOSYM { SymbolTable::instance()->callProc(*$1, $3->list()); }
              ;
 nullStatement: /* empty */
              ;
