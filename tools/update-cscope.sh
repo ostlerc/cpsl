@@ -4,8 +4,8 @@ DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 cd $DIR/..
 
-find `pwd` -type f  \
-    -regex '.*\.\(cpp\|h\)' -and \
+find -E `pwd` -type f  \
+    -regex '.*\.(cpp|h)' -and \
     -not -path '*.git' -and \
     -not -path '*.alt/*' -and \
     -not -path '*/build/*' \

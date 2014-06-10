@@ -13,17 +13,16 @@
 # set path+=<issue-tracking repository>/**
 # Happy tagging!
 
-/usr/bin/ctags \
-  --fields=+lS \
+/usr/local/bin/ctags \
+  --fields=+iaS \
+  --c++-kinds=+p \
+  --extra=+q \
+  --languages=c++ \
   --append=yes \
-  --language-force=java \
-  --langmap=JavaScript:.batch.library.configure \
   --sort=yes \
   --recurse=yes \
   --exclude=.git \
   --exclude=*.class \
-  --exclude=*.iml \
-  --exclude=*.eml \
   -o ~/.cpsl_tags.tmp \
   $(pwd)
 
