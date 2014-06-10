@@ -71,6 +71,10 @@ string Expression::toString(Operation op)
 
 Expression* Expression::exec(Expression* e, Operation op)
 {
+    //TODO: remove me
+    if(e->symbol->type == Type::Unknown || symbol->type == Type::Unknown)
+        return this;
+
     if(bison_verbose)
         cpsl_log->out << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 
@@ -90,8 +94,11 @@ Expression* Expression::exec(Expression* e, Operation op)
         case Type::Unknown:
             //return this; //skip unknown types for now
         default:
-            cerr << "unhandled (rhs) type error on line " << yylineno << " " << e->toString() << "-" << e->toString() << endl;
-            exit(1);
+            if(bison_verbose)
+            {
+                cerr << "unhandled (rhs) type error on line " << yylineno << " " << toString() << "-" << e->toString() << endl;
+                exit(1);
+            }
     }
 
     if(canFold(op) && canFold(e))
@@ -487,6 +494,9 @@ void Expression::print()
                     exit(1);
                 }
             }
+            break;
+        case Type::Array:
+        case Type::Record:
             break;
         default:
             {

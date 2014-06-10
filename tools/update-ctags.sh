@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/bash
 
 # This will generate a nice set of ctags for issuetracker
 # Make sure that you have exuberant-ctags installed and not the
@@ -13,19 +13,18 @@
 # set path+=<issue-tracking repository>/**
 # Happy tagging!
 
-
-nice --adjustment=19 /usr/bin/ctags \
-                           --fields=+lS \
-                           --append=yes \
-                           --language-force=java \
-                           --langmap=JavaScript:.batch.library.configure \
-                           --sort=yes \
-                           --recurse=yes \
-                           --exclude=.git \
-                           --exclude=*.class \
-                           --exclude=*.iml \
-                           --exclude=*.eml \
-                           -o ~/.cpsl_tags.tmp \
-                           $(pwd)
+/usr/bin/ctags \
+  --fields=+lS \
+  --append=yes \
+  --language-force=java \
+  --langmap=JavaScript:.batch.library.configure \
+  --sort=yes \
+  --recurse=yes \
+  --exclude=.git \
+  --exclude=*.class \
+  --exclude=*.iml \
+  --exclude=*.eml \
+  -o ~/.cpsl_tags.tmp \
+  $(pwd)
 
 mv ~/.cpsl_tags.tmp ~/.cpsl_tags

@@ -16,6 +16,8 @@ class Type
             Bool,
             Procedure,
             Function,
+            Record,
+            Array,
             Unknown
         };
 

@@ -251,7 +251,7 @@ arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM O
 expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | CHAROSYM { $$ = SymbolTable::instance()->expression_char($1); }
           | STROSYM { $$ = SymbolTable::instance()->expression_string($1); }
-          /*| IDENTSYM covered by lValue*/
+          /* IDENTSYM covered by lValue */
           | expression BAROSYM expression { $$ = $1->exec($3, Expression::Bar); }
           | expression AMPOSYM expression { $$ = $1->exec($3, Expression::Amp); }
           | expression EQOSYM expression { $$ = $1->exec($3, Expression::Eq); }

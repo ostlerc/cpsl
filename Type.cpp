@@ -48,6 +48,10 @@ string Type::toString(ValueType vt)
             return "procedure";
         case Function:
             return "function";
+        case Record:
+            return "record";
+        case Array:
+            return "array";
         default:
             cerr << "Unknown valuetype " << vt << " on line: " << yylineno << endl;
             exit(1);
@@ -72,6 +76,10 @@ string Type::prefix(ValueType vt)
             return "char";
         case Bool:
             return "bool";
+        case Record:
+            return "record";
+        case Array:
+            return "array";
         default:
             cerr << "Unknown valuetype " << vt << " on line: " << yylineno << endl;
             exit(1);
@@ -94,6 +102,7 @@ auto Type::fromString(std::string type_string, bool is_const) -> ValueType
             cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
             exit(1);
         }
+        return type_string == "0record" ? Record : Array;
     }
     else
     {
@@ -120,6 +129,8 @@ bool Type::isFoldable(ValueType type)
         case Char:
         case Bool:
         case Unknown:
+        case Record:
+        case Array:
             return false;
         default:
             cerr << "Unknown valuetype " << toString(type) << " on line: " << yylineno << endl;

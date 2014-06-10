@@ -142,8 +142,12 @@ Symbol* SymbolTable::findSymbol(string* s, bool err)
     if(!err)
         return NULL;
 
-    cerr << "could not find symbol " << *s << " line: " << yylineno << endl;
-    exit(1);
+    if(bison_verbose)
+    {
+        cerr << "could not find symbol " << *s << " line: " << yylineno << endl;
+        exit(1);
+    }
+    return NULL;
 }
 
 void SymbolTable::create_vars(std::string *type_string, vector<std::string> var_list)
@@ -284,8 +288,11 @@ void SymbolTable::whileStatement(std::string* startLbl, std::string *endLbl)
 string* SymbolTable::ifExpr(Expression* e)
 {
     string *endLbl = new string(Symbol::GetLabel("IfE"));
-    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
-    e->free();
+    if(e && e->reg) //TODO: remove me
+    {
+        cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
+        e->free();
+    }
 
     return endLbl;
 }
@@ -309,8 +316,11 @@ void SymbolTable::ifStatement()
 string* SymbolTable::elseifExpr(Expression *e)
 {
     string *lbl = new string(Symbol::GetLabel("IfE"));
-    cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *lbl << " # exit 'elseif' branch expr: " << e->toString() << " on line " << yylineno << endl;
-    e->free();
+    if(e && e->reg) //TODO: remove me
+    {
+        cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *lbl << " # exit 'elseif' branch expr: " << e->toString() << " on line " << yylineno << endl;
+        e->free();
+    }
     return lbl;
 }
 
@@ -433,6 +443,9 @@ void SymbolTable::endProcedure(std::vector<Parameters> params)
 
 void SymbolTable::_return(Expression *exp)
 {
+    if(bison_verbose)
+        cout << "looking at you! " << exp->toString() << endl;
+
     std::string type = lbl_stack["return_type"].top();
     if(!!exp == type.empty())
     {
@@ -478,12 +491,15 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     std::string lbl = procId(proc, expr_list);
     Symbol *s = findSymbol(lbl);
 
+    if(!s)
+        return NULL; //TODO: remove me
+
     if(s->type != fType)
     {
         if(s->type == Type::Function)
             cerr << "function '" << proc << "' used as a procedure on line " << yylineno << endl;
         else
-            cerr << "variable '" << proc << "' is not of type '" << Type::toString(fType) << "' on line " << yylineno << endl;
+            cerr << "variable '" << proc << "' is not of type '" << Type::toString(fType) << "' it is '" << Type::toString(s->type) << "' on line " << yylineno << endl;
         exit(1);
     }
 
@@ -507,6 +523,9 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
 Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_list)
 {
     Symbol *s = procBoiler(func, expr_list, Type::Function);
+
+    if(!s)
+        return NULL; //TODO: remove me
 
     if(bison_verbose)
         cout << "return type for function " << func << " is " << Type::toString(s->returnType) << " on line " << yylineno << endl;
