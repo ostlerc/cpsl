@@ -73,7 +73,6 @@ class SymbolTable
 
     //hackery for now
     Expression* unimp();
-    void ignoreNextLValue();
 
     Symbol* forwardProc(std::string id, std::vector<Parameters> params);
     Symbol* forwardFunc(std::string id, std::vector<Parameters> params, std::string type);
@@ -98,7 +97,6 @@ class SymbolTable
     std::vector<SymbolTableLevel*> levels;
 
     std::map<std::string, std::stack<std::string>> lbl_stack;
-    bool ignore_next_lval; //TODO: remove when types are done
 
     Type* cbool;
     Type* cint;

@@ -72,10 +72,6 @@ string Expression::toString(Operation op)
 
 Expression* Expression::exec(Expression* e, Operation op)
 {
-    //TODO: remove me
-    if(e->symbol->type->vt == Type::Unknown || symbol->type->vt == Type::Unknown)
-        return this;
-
     if(bison_verbose)
         cpsl_log->out << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 

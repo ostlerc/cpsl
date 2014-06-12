@@ -91,14 +91,13 @@ void SymbolTableLevel::unloadParams(std::vector<Parameters> params)
 
 void SymbolTableLevel::popVariable(std::string id, Type* type)
 {
-    //TODO: add size by type
     if(globalScope)
     {
         cerr << "cannot pop a global variable! on line " << yylineno << endl;
         exit(1);
     }
 
-    int size = 4;
+    int size = type->size;
     if(!Type::isConst(type->vt))
     {
         offset += size;
@@ -112,8 +111,7 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 
     Symbol *sym = new Symbol(id, offset, type, globalScope);
 
-    //TODO: add size by type
-    int size = 4;
+    int size = type->size;
 
     if(!Type::isConst(type->vt))
     {

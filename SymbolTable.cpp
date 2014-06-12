@@ -15,8 +15,7 @@ extern bool bison_verbose;
 extern Log* cpsl_log;
 
 SymbolTable::SymbolTable()
-    : ignore_next_lval(false)
-    , cbool(NULL)
+    : cbool(NULL)
     , cint(NULL)
     , cchar(NULL)
     , cstr(NULL)
@@ -60,9 +59,8 @@ Expression* SymbolTable::expression(int i)
 
 Expression* SymbolTable::unimp()
 {
-    return new Expression(new Symbol(1)); //TODO: this is so we don't get errors.
-    //cerr << "Unimplemented function " << __FUNCTION__ << " line: " << yylineno << endl;
-    //exit(1);
+    cerr << "Unimplemented function " << __FUNCTION__ << " line: " << yylineno << endl;
+    exit(1);
 }
 
 Expression* SymbolTable::lValue(Symbol* s)
@@ -282,17 +280,8 @@ Expression* SymbolTable::assign(std::string s, Expression* e)
 
 Expression* SymbolTable::assign(Symbol* s, Expression* e)
 {
-    if(ignore_next_lval)
-        ignore_next_lval = false;
-    else
-        e->assign(s);
-
+    e->assign(s);
     return e;
-}
-
-void SymbolTable::ignoreNextLValue()
-{
-    ignore_next_lval = true;
 }
 
 string* SymbolTable::whileStart()

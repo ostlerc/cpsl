@@ -47,7 +47,7 @@ class Symbol
         std::string toString();
         std::string reg() { return global ? "$gp" : "$fp"; }
 
-        void read(); //TODO: for now only read integers, in the future enhance.
+        void read();
         void store();
         void setType(Type::ValueType type);
 

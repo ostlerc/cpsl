@@ -165,8 +165,8 @@ assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $
 lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol(*$1); }
       ;
 lValueHelper: /*empty*/
-            | lValueHelper DOTOSYM IDENTSYM { SymbolTable::instance()->ignoreNextLValue(); }
-            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM { $3->free(); SymbolTable::instance()->ignoreNextLValue(); }
+            | lValueHelper DOTOSYM IDENTSYM
+            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM
             ;
 lValueList: lValue { $$ = new SymList($1); }
           | lValueList COMMAOSYM lValue { $$ = $1->add($3); }
