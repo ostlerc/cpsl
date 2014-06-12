@@ -5,48 +5,38 @@
 
 #include "Type.h"
 #include "ListWrapper.h"
-
-struct Parameters;
+#include "SymbolTable.h"
 
 class Symbol
 {
     public:
-        Symbol(std::string& name, int offset, Type::ValueType type, bool global = true)
-            : name(name)
-            , offset(offset)
-            , type(type)
-            , global(global)
-        {}
+        Symbol(std::string& name, int offset, Type *type, bool global = true);
 
         //const constructors
         Symbol(std::string& str_value)
             : name(GetLabel("cstr"))
             , str_value(str_value)
-            , type(Type::Const_String)
             , global(true)
-        {}
+        { type = SymbolTable::instance()->findType(Type::constStringId()); }
 
         Symbol(int v)
             : name(GetLabel("cint"))
             , int_value(v)
-            , type(Type::Const_Integer)
             , global(true)
-        {}
+        { type = SymbolTable::instance()->findType(Type::constIntegerId()); }
 
         Symbol(char c, std::string& s)
             : name(GetLabel("cchr"))
             , str_value(s)
             , char_value(c)
-            , type(Type::Const_Char)
             , global(true)
-        {}
+        { type = SymbolTable::instance()->findType(Type::constCharId()); }
 
         Symbol(const std::string& name, bool b)
             : name(name)
             , bool_value(b)
-            , type(Type::Const_Bool)
             , global(true)
-        {}
+        { type = SymbolTable::instance()->findType(Type::constBoolId()); }
 
         Symbol(Symbol* s);
 
@@ -67,8 +57,8 @@ class Symbol
         int offset;
         bool bool_value;
         char char_value;
-        Type::ValueType type;
-        Type::ValueType returnType; //used for functions
+        Type *type;
+        Type *returnType; //used for functions
         bool global;
 };
 

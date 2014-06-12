@@ -26,6 +26,19 @@ Symbol::Symbol(Symbol* s)
     global = s->global;
 }
 
+Symbol::Symbol(std::string& name, int offset, Type *type, bool global)
+    : name(name)
+    , offset(offset)
+    , type(type)
+    , global(global)
+{
+    if(!type)
+    {
+        std::cerr << "attempt to create symbol with NULL type on line " << yylineno << std::endl;
+        exit(1);
+    }
+}
+
 std::string Symbol::GetLabel(const string& prefix, bool gen)
 {
     static map<string, int> m;
@@ -42,7 +55,7 @@ void Symbol::read()
     if(bison_verbose)
         cout << "\treading symbol " << toString() << endl;
 
-    if(Type::isConst(type))
+    if(Type::isConst(type->vt))
     {
         if(bison_verbose) //skip this error (for files types we don't support yet)
         {
@@ -52,7 +65,7 @@ void Symbol::read()
         return;
     }
 
-    switch(type)
+    switch(type->vt)
     {
         case Type::Integer:
             {
@@ -92,10 +105,10 @@ void Symbol::read()
 
 string Symbol::toString()
 {
-    string o = Type::toString(type);
+    string o = Type::toString(type->vt);
     o += " " + name;
 
-    switch(type)
+    switch(type->vt)
     {
         case Type::Const_Integer:
             o += " val=" + to_string(int_value);
@@ -121,7 +134,7 @@ void Symbol::store()
     if(bison_verbose)
         cout << "storing " << toString() << endl;
 
-    switch(type)
+    switch(type->vt)
     {
         case Type::Const_String:
         case Type::Const_Char:
@@ -139,7 +152,7 @@ void Symbol::store()
 void Symbol::setType(Type::ValueType vt)
 {
     int v = -1;
-    switch(type)
+    switch(type->vt)
     {
         case Type::Const_Integer:
             v = int_value;
@@ -151,7 +164,7 @@ void Symbol::setType(Type::ValueType vt)
             v = bool_value;
             break;
         default:
-            type = vt;
+            type = SymbolTable::instance()->typeOf(vt);
             return;
             break;
     }
@@ -174,5 +187,5 @@ void Symbol::setType(Type::ValueType vt)
             break;
     }
 
-    type = vt;
+    type = SymbolTable::instance()->typeOf(vt);
 }

@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "SymbolTable.h"
+#include "Symbol.h"
 #include "cpsl.hpp"
 extern "C" int yylex();
 extern int yylineno;

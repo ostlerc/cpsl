@@ -21,8 +21,23 @@ class Type
             Unknown
         };
 
-        Type(ValueType type);
+        Type(ValueType type, int size);
         virtual ~Type();
+
+        ValueType vt;
+        int size;
+
+        static Type* typeFunction() { static Type* t = new Type(Function, 0); return t; }
+        static Type* typeProcedure() { static Type* t = new Type(Procedure, 0); return t; }
+
+        static std::string constStringId() { return "0string"; }
+        static std::string constIntegerId() { return "0integer"; }
+        static std::string constCharId() { return "0char"; }
+        static std::string constBoolId() { return "0boolean"; }
+        static std::string integerId() { return "integer"; }
+        static std::string charId() { return "char"; }
+        static std::string boolId() { return "boolean"; }
+
         static bool isConst(ValueType);
         static bool isFoldable(ValueType type);
         static bool match(ValueType lhs, ValueType rhs);
@@ -30,9 +45,6 @@ class Type
         static ValueType const_val(ValueType type);
         static std::string toString(ValueType);
         static std::string prefix(ValueType);
-        static ValueType fromString(std::string type_name, bool is_const = false);
-        ValueType vt;
-
 };
 
 #endif //__TYPE_H__

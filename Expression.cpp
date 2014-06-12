@@ -1,5 +1,6 @@
 #include "Expression.h"
 #include "Log.h"
+#include "Symbol.h"
 
 #include <iostream>
 
@@ -72,14 +73,14 @@ string Expression::toString(Operation op)
 Expression* Expression::exec(Expression* e, Operation op)
 {
     //TODO: remove me
-    if(e->symbol->type == Type::Unknown || symbol->type == Type::Unknown)
+    if(e->symbol->type->vt == Type::Unknown || symbol->type->vt == Type::Unknown)
         return this;
 
     if(bison_verbose)
         cpsl_log->out << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 
     int rhs_v = 0;
-    switch(e->symbol->type)
+    switch(e->symbol->type->vt)
     {
         case Type::Integer:
         case Type::Const_Integer:
@@ -104,7 +105,7 @@ Expression* Expression::exec(Expression* e, Operation op)
     if(canFold(op) && canFold(e))
     {
         int lhs_v = 0;
-        switch(symbol->type)
+        switch(symbol->type->vt)
         {
             case Type::Integer:
             case Type::Const_Integer:
@@ -174,7 +175,7 @@ Expression* Expression::exec(Expression* e, Operation op)
         }
         return this;
     }
-    switch(symbol->type)
+    switch(symbol->type->vt)
     {
         case Type::Integer:
         case Type::Const_Integer:
@@ -185,7 +186,7 @@ Expression* Expression::exec(Expression* e, Operation op)
                 loadInTemp();
 
                 string rhs_str;
-                if(!Type::isConst(e->symbol->type))
+                if(!Type::isConst(e->symbol->type->vt))
                 {
                     e->loadInTemp();
                     rhs_str = e->reg->name();
@@ -315,9 +316,9 @@ Expression* Expression::exec(Operation op)
             {
                 Expression *e = new Expression(this);
 
-                if(Type::isConst(symbol->type))
+                if(Type::isConst(symbol->type->vt))
                 {
-                    switch(symbol->type)
+                    switch(symbol->type->vt)
                     {
                         case Type::Const_Integer:
                             e->symbol->int_value = -symbol->int_value;
@@ -349,9 +350,9 @@ Expression* Expression::exec(Operation op)
         case Tilde:
             {
                 Expression *e = new Expression(this);
-                if(Type::isConst(symbol->type))
+                if(Type::isConst(symbol->type->vt))
                 {
-                    switch(symbol->type)
+                    switch(symbol->type->vt)
                     {
                         case Type::Const_Integer:
                             e->symbol->int_value = !symbol->int_value;
@@ -389,8 +390,8 @@ void Expression::invalidType(Operation op)
 
 bool Expression::canFold(Expression* e)
 {
-    return Type::isConst(symbol->type) && Type::isConst(e->symbol->type) &&
-           Type::isFoldable(symbol->type) && Type::isFoldable(e->symbol->type);
+    return Type::isConst(symbol->type->vt) && Type::isConst(e->symbol->type->vt) &&
+           Type::isFoldable(symbol->type->vt) && Type::isFoldable(e->symbol->type->vt);
 }
 
 bool Expression::canFold(Operation op)
@@ -424,7 +425,7 @@ void Expression::print()
     if(bison_verbose)
         cout << "printing expression " << toString() << endl;
 
-    switch(symbol->type)
+    switch(symbol->type->vt)
     {
         case Type::Const_Integer:
             {
@@ -518,7 +519,7 @@ void Expression::loadInTemp()
 
     reg = Register::FindRegister(Register::Temp);
 
-    switch(symbol->type)
+    switch(symbol->type->vt)
     {
         case Type::Integer:
             {
@@ -589,7 +590,7 @@ void Expression::store(int offset, std::string regstr)
     if(regstr.empty())
         regstr = symbol->reg();
 
-    switch(symbol->type)
+    switch(symbol->type->vt)
     {
         case Type::Bool:
         case Type::Char:
@@ -608,7 +609,7 @@ void Expression::store(int offset, std::string regstr)
 
 void Expression::assign(Symbol* s)
 {
-    if(!Type::match(symbol->type, s->type))
+    if(!Type::match(symbol->type->vt, s->type->vt))
     {
         cerr << "Expression type mismatch: "
             << toString() << "-"
@@ -617,7 +618,7 @@ void Expression::assign(Symbol* s)
     }
 
     //s is actually the lhs
-    if(Type::isConst(s->type))
+    if(Type::isConst(s->type->vt))
     {
         if(bison_verbose)
         {
@@ -628,7 +629,7 @@ void Expression::assign(Symbol* s)
     }
 
     loadInTemp();
-    switch(s->type)
+    switch(s->type->vt)
     {
         case Type::Bool:
         case Type::Char:
@@ -686,7 +687,7 @@ void Expression::setType(Operation op, bool isConst)
             break;
     }
 
-    if(Type::isConst(symbol->type) && isConst)
+    if(Type::isConst(symbol->type->vt) && isConst)
         t = Type::const_val(t);
 
     symbol->setType(t);
@@ -700,7 +701,7 @@ void Expression::setVal(int v)
     if(bison_verbose)
         cout << "setting value " << v << " for " << toString() << " on line " << yylineno << endl;
 
-    switch(symbol->type)
+    switch(symbol->type->vt)
     {
         case Type::Const_Integer:
             symbol->int_value = v;
@@ -717,4 +718,9 @@ void Expression::setVal(int v)
                 exit(1);
             }
     }
+}
+
+Type::ValueType Expression::type()
+{ 
+    return symbol->type->vt;
 }

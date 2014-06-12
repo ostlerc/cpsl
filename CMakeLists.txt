@@ -10,7 +10,7 @@ ADD_FLEX_BISON_DEPENDENCY(CpslScanner CpslParser)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} headers)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -ggdb")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wno-deprecated-register -Wno-unneeded-internal-declaration -ggdb")
 set(cpsl_srcs
   main.cpp
   SymbolTable.cpp

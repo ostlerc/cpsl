@@ -21,14 +21,14 @@ class SymbolTableLevel
         void unloadParams(std::vector<Parameters> params);
         void saveExpressions(std::vector<Expression*> expr_list);
 
-        Symbol* addVariable(std::string id, Type::ValueType type, bool named = true);
-        void popVariable(std::string id, Type::ValueType type);
+        Symbol* addVariable(std::string id, Type *type, bool named = true);
+        void popVariable(std::string id, Type *type);
         Symbol* addProcedure(std::string id);
-        Symbol* addFunction(std::string id, Type::ValueType returnType);
+        Symbol* addFunction(std::string id, Type *returnType);
         void checkProcedures();
         Symbol* lookupVariable(std::string id);
-        void addType(std::string id, Type::ValueType type);
-        Type::ValueType lookupType(std::string id);
+        Type* lookupType(std::string id);
+        Type* addType(std::string id, Type::ValueType type, int size);
 
 
     private:
@@ -36,7 +36,7 @@ class SymbolTableLevel
 
     private:
         std::map<std::string, Symbol*> variables;
-        std::map<std::string, Type::ValueType> types;
+        std::map<std::string, Type*> types;
         int offset;
         bool globalScope;
 

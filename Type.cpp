@@ -7,7 +7,11 @@ using namespace std;
 extern int yylineno;
 extern int bison_verbose;
 
-Type::Type(ValueType type) : vt(type) {}
+Type::Type(ValueType type, int size) 
+    : vt(type) 
+    , size(size)
+{
+}
 Type::~Type() {}
 
 bool Type::isConst(ValueType vt)
@@ -84,36 +88,6 @@ string Type::prefix(ValueType vt)
             cerr << "Unknown valuetype " << vt << " on line: " << yylineno << endl;
             exit(1);
     }
-}
-
-auto Type::fromString(std::string type_string, bool is_const) -> ValueType
-{
-    if(type_string == "integer" || type_string == "INTEGER")
-        return is_const ? Const_Integer : Integer;
-    else if(type_string == "boolean" || type_string == "BOOLEAN")
-        return is_const ? Const_Bool : Bool;
-    else if(type_string == "char" || type_string == "CHAR")
-        return is_const ? Const_Char : Char;
-
-    if(type_string == "0record" || type_string == "0array")
-    {
-        if(bison_verbose)
-        {
-            cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
-            exit(1);
-        }
-        return type_string == "0record" ? Record : Array;
-    }
-    else
-    {
-        if(bison_verbose)
-        {
-            cerr << "unsupported / unimplemented type string " << type_string << " on line: " << yylineno << endl;
-            exit(1);
-        }
-    }
-
-    return Unknown;
 }
 
 bool Type::isFoldable(ValueType type)

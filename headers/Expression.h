@@ -1,10 +1,11 @@
 #ifndef __EXPRESSION_H__
 #define __EXPRESSION_H__
 
-#include "Symbol.h"
 #include "Register.h"
 #include "ListWrapper.h"
+#include "Type.h"
 
+class Symbol;
 class SymbolTable;
 
 class Expression
@@ -61,7 +62,7 @@ class Expression
         void invalidType(Operation op);
         void setType(Operation op, bool isConst = true);
         void store(int offset = -1, std::string reg = "");
-        Type::ValueType type() { return symbol->type; }
+        Type::ValueType type();
 
     private:
 

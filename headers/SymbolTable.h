@@ -6,10 +6,10 @@
 #include <vector>
 #include <stack>
 
-#include "Symbol.h"
 #include "Type.h"
 #include "Expression.h"
 
+class Symbol;
 class SymbolTableLevel;
 struct Parameters;
 
@@ -29,10 +29,12 @@ class SymbolTable
     Expression* expression_string(std::string*);
     Expression* expression_char(std::string*);
     Expression* lValue(Symbol* s);
-    Symbol* findSymbol(std::string*, bool err = true);
+
     Symbol* findSymbol(std::string, bool err = true);
+    Type* findType(std::string, bool err = true);
+
     void declare_const(std::string *name, Expression* e);
-    void create_vars(std::string *type_string, std::vector<std::string> var_list);
+    void create_vars(std::string type_string, std::vector<std::string> var_list);
     void read(std::vector<Symbol*> sym_list);
     void print(std::vector<Expression*> expr_list);
     void begin();
@@ -79,7 +81,7 @@ class SymbolTable
     void endProcedure(std::vector<Parameters> params);
     void callProc(std::string proc, std::vector<Expression*> expr_list = {});
     Expression* callFunc(std::string proc, std::vector<Expression*> expr_list = {});
-    Symbol* procBoiler(std::string proc, std::vector<Expression*> expr_list, Type::ValueType fType);
+    Symbol* procBoiler(std::string proc, std::vector<Expression*> expr_list, Type* fType);
     void _return(Expression* exp = NULL);
 
     std::string paramsString(Parameters params);
@@ -88,6 +90,8 @@ class SymbolTable
     std::string procId(std::string id, std::vector<Parameters>& params);
     std::string procId(std::string id, std::vector<Expression*> exprs);
 
+    Type* typeOf(Type::ValueType vt);
+
     private:
 
     std::vector<Symbol*> c_symbols; //used to write out const string data at end of program, there is no scope for const literals
@@ -95,14 +99,22 @@ class SymbolTable
 
     std::map<std::string, std::stack<std::string>> lbl_stack;
     bool ignore_next_lval; //TODO: remove when types are done
+
+    Type* cbool;
+    Type* cint;
+    Type* cchar;
+    Type* cstr;
+    Type* boolt;
+    Type* intt;
+    Type* chart;
 };
 
 
 struct Parameters
 {
-    Parameters(std::vector<std::string> sl, Type::ValueType type) : vars(sl) , type(type) {}
+    Parameters(std::vector<std::string> sl, Type *type) : vars(sl) , type(type) {}
     std::vector<std::string> vars;
-    Type::ValueType type;
+    Type *type;
 };
 
 #endif //__SYMBOL_TABLE_H__

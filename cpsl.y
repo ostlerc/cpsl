@@ -10,6 +10,7 @@
 #include "SymbolTable.h"
 #include "Type.h"
 #include "Log.h"
+#include "Symbol.h"
 
 int bison_verbose = 0;
 int yyerror(const char* s);
@@ -111,7 +112,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3, $1->list()); }
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars(*$3, $1->list()); }
             ;
 pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
@@ -133,8 +134,8 @@ formalParameters: /*empty*/ { $$ = new ParamList; }
                 | formalParameter { $$ = new ParamList(*$1); }
                 | formalParameters SEMIOSYM formalParameter { $$ = $1->add(*$3); }
                 ;
-formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2->list(), Type::fromString(*$4)); }
-               | identList COLONOSYM type { $$ = new Parameters($1->list(), Type::fromString(*$3)); }
+formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2->list(), SymbolTable::instance()->findType(*$4)); }
+               | identList COLONOSYM type { $$ = new Parameters($1->list(), SymbolTable::instance()->findType(*$3)); }
                ;
 body: constDecl typeDecl varDecl block
     ;
@@ -161,7 +162,7 @@ statement: assignment
          ;
 assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $3); }
           ;
-lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol($1); }
+lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol(*$1); }
       ;
 lValueHelper: /*empty*/
             | lValueHelper DOTOSYM IDENTSYM { SymbolTable::instance()->ignoreNextLValue(); }

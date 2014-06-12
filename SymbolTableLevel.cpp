@@ -21,6 +21,13 @@ void SymbolTableLevel::checkId(std::string id)
         exit(1);
     }
 
+    auto tvar = types.find(id);
+    if(tvar != types.end())
+    {
+        cerr << id << " already defined as type on line " << yylineno << endl;
+        exit(1);
+    }
+
     auto type = types.find(id);
     if(type != types.end())
     {
@@ -31,15 +38,15 @@ void SymbolTableLevel::checkId(std::string id)
 
 Symbol* SymbolTableLevel::addProcedure(std::string id)
 {
-    variables[id] = new Symbol(id, -1, Type::Procedure);
+    variables[id] = new Symbol(id, -1, Type::typeProcedure());
     //I am using this bool_value as a flag if the procedure has been declared or not
     variables[id]->bool_value = false;
     return variables[id];
 }
 
-Symbol* SymbolTableLevel::addFunction(std::string id, Type::ValueType returnType)
+Symbol* SymbolTableLevel::addFunction(std::string id, Type *returnType)
 {
-    variables[id] = new Symbol(id, -1, Type::Function);
+    variables[id] = new Symbol(id, -1, Type::typeFunction());
     //I am using this bool_value as a flag if the procedure has been declared or not
     variables[id]->bool_value = false;
     variables[id]->returnType = returnType;
@@ -52,7 +59,7 @@ void SymbolTableLevel::checkProcedures()
     {
         Symbol *sym = v.second;
         //I am using the symbol bool_value as a flag if the procedure has been declared or not
-        if((sym->type == Type::Procedure || sym->type == Type::Function) && !sym->bool_value)
+        if((sym->type->vt == Type::Procedure || sym->type->vt == Type::Function) && !sym->bool_value)
         {
             cerr << "unresolved symbol " << sym->toString() << endl;
             exit(1);
@@ -82,7 +89,7 @@ void SymbolTableLevel::unloadParams(std::vector<Parameters> params)
     }
 }
 
-void SymbolTableLevel::popVariable(std::string id, Type::ValueType type)
+void SymbolTableLevel::popVariable(std::string id, Type* type)
 {
     //TODO: add size by type
     if(globalScope)
@@ -92,14 +99,14 @@ void SymbolTableLevel::popVariable(std::string id, Type::ValueType type)
     }
 
     int size = 4;
-    if(!Type::isConst(type))
+    if(!Type::isConst(type->vt))
     {
         offset += size;
         cpsl_log->out << "\tadd $sp $sp " << size << " # popping " << id << "(" << offset << ") on line " << yylineno << endl;
     }
 }
 
-Symbol* SymbolTableLevel::addVariable(std::string id, Type::ValueType type, bool named)
+Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 {
     checkId(id);
 
@@ -108,7 +115,7 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type::ValueType type, bool
     //TODO: add size by type
     int size = 4;
 
-    if(!Type::isConst(type))
+    if(!Type::isConst(type->vt))
     {
 
         if(globalScope && named)
@@ -147,13 +154,16 @@ Symbol* SymbolTableLevel::lookupVariable(std::string id)
     return var->second;
 }
 
-void SymbolTableLevel::addType(std::string id, Type::ValueType type)
+Type* SymbolTableLevel::lookupType(std::string id)
 {
-    checkId(id);
-    types[id]=type;
+    auto var = types.find(id);
+    if(var == types.end()) return NULL;
+    return var->second;
 }
 
-Type::ValueType SymbolTableLevel::lookupType(std::string id)
+Type* SymbolTableLevel::addType(std::string id, Type::ValueType type, int size)
 {
-    return Type::fromString(id);
+    checkId(id);
+    types[id] = new Type(type, size);
+    return types[id];
 }
