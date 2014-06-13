@@ -22,13 +22,13 @@ extern "C" int yylex();
 %union{
   int int_val;
   std::string *str_val;
-  SymbolTable *tableptr;
   Expression *exprptr;
   Symbol *symptr;
   ExprList *expr_list;
   StrList *str_list;
   Parameters *paramptr;
   ParamList *param_list;
+  Type *typeexpr;
   SymList *sym_list;
 }
 
@@ -53,8 +53,9 @@ extern "C" int yylex();
 %type <exprptr> expression
 %type <symptr> lValue;
 %type <sym_list> lValueList;
-%type <str_val> type;
-%type <str_val> simpleType;
+%type <typeexpr> type;
+/*%type <str_val> arrayType;*/
+/*%type <str_val> recordType;*/
 %type <paramptr> formalParameter;
 %type <param_list> formalParameters;
 %type <str_val> whileHead; /*return start label*/
@@ -112,7 +113,7 @@ varDecl: /*empty*/
 varStatements: varStatements varStatement
              | varStatement
              ;
-varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars(*$3, $1->list()); }
+varStatement: identList COLONOSYM type SEMIOSYM { SymbolTable::instance()->create_vars($3, $1->list()); }
             ;
 pOrFDecls: /*empty procedures or function decls*/
          | pOrFDecls pOrFDecl
@@ -125,17 +126,17 @@ procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORW
              ;
 procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list()); }
                ;
-functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardFunc(*$2,$4->list(), *$7); }
+functionDecl: FUNCTIONSYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardFunc(*$2,$4->list(), $7); }
             | FUNCTIONSYM functionParams body SEMIOSYM { SymbolTable::instance()->endProcedure($2->list()); }
             ;
-functionParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list(), *$6); }
+functionParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM COLONOSYM type SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list(), $6); }
               ;
 formalParameters: /*empty*/ { $$ = new ParamList; }
                 | formalParameter { $$ = new ParamList(*$1); }
                 | formalParameters SEMIOSYM formalParameter { $$ = $1->add(*$3); }
                 ;
-formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2->list(), SymbolTable::instance()->findType(*$4)); }
-               | identList COLONOSYM type { $$ = new Parameters($1->list(), SymbolTable::instance()->findType(*$3)); }
+formalParameter: VARSYM identList COLONOSYM type { $$ = new Parameters($2->list(), $4); }
+               | identList COLONOSYM type { $$ = new Parameters($1->list(), $3); }
                ;
 body: constDecl typeDecl varDecl block
     ;
@@ -226,12 +227,10 @@ typeStatements: typeStatement
               ;
 typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) std::cout << "type defined '" << *$1 << std::endl; }
              ;
-type: simpleType { $$ = $1; }
-    | recordType { $$ = new std::string("0record"); }
-    | arrayType  { $$ = new std::string("0array"); }
+type: IDENTSYM { $$ = SymbolTable::instance()->findType(*$1); }
+    | recordType { $$ = Type::typeRecord(); }
+    | arrayType  { $$ = Type::typeArray(); }
     ;
-simpleType: IDENTSYM { $$ = $1; }
-          ;
 recordType: RECORDSYM recordDecls ENDSYM
           ;
 recordDecls: /*empty*/
@@ -247,7 +246,7 @@ commaIdentifiers: commaIdentifiers commaIdentifier { $$ = $1->add(*$2); }
                 ;
 commaIdentifier: COMMAOSYM IDENTSYM { $$ = $2; }
                ;
-arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type
+arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type /*{ SymbolTable::instance()->arrayType($3, $5, $8); }*/
          ;
 expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | CHAROSYM { $$ = SymbolTable::instance()->expression_char($1); }

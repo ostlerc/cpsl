@@ -7,25 +7,19 @@ using namespace std;
 extern int yylineno;
 extern int bison_verbose;
 
-Type::Type(ValueType type, int size) 
-    : vt(type) 
+Type::Type(std::string name, ValueType type, int size, bool _const, Type* nonc) 
+    : name(name)
+    , vt(type) 
     , size(size)
-{
-}
+    , _const(_const)
+    , nonconst_counterpart(nonc)
+{ }
+
 Type::~Type() {}
 
-bool Type::isConst(ValueType vt)
+bool Type::isConst()
 {
-    switch(vt)
-    {
-        case Const_Integer:
-        case Const_String:
-        case Const_Char:
-        case Const_Bool:
-            return true;
-        default:
-            return false;
-    }
+    return _const;
 }
 
 string Type::toString(ValueType vt)
@@ -133,46 +127,34 @@ bool Type::match(ValueType lhs, ValueType rhs)
     return true;
 }
 
-auto Type::nonconst_val(ValueType type) -> ValueType
+Type* Type::nonconst_val()
 {
-    if(!isConst(type))
-        return type;
+    if(!_const)
+        return this;
 
-    switch(type)
+    if(!nonconst_counterpart)
     {
-        case Const_Integer:
-            return Integer;
-        case Const_Char:
-            return Char;
-        case Const_Bool:
-            return Bool;
-        case Const_String:
-            {
-                cerr << "cannot have non const value of string. line:" << yylineno << endl;
-                exit(1);
-            }
-            break;
-        default:
-            {
-                cerr << "Unknown const type found in nonconst_val on line: " << yylineno << endl;
-                exit(1);
-            }
-            break;
+        cerr << "attempting to get nonconst_counterpart on line " << yylineno << endl;
+        exit(1);
     }
+
+    return nonconst_counterpart;
 }
 
 auto Type::const_val(ValueType type) -> ValueType
 {
-    if(isConst(type))
-        return type;
-
     switch(type)
     {
+        case Const_String:
+            return Const_String;
         case Integer:
+        case Const_Integer:
             return Const_Integer;
         case Char:
+        case Const_Char:
             return Const_Char;
         case Bool:
+        case Const_Bool:
             return Const_Bool;
         default:
             {
@@ -181,4 +163,9 @@ auto Type::const_val(ValueType type) -> ValueType
             }
             break;
     }
+}
+
+std::string Type::toString() const
+{
+    return toString(vt) + " " + name;
 }

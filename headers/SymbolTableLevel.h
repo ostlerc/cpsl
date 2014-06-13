@@ -28,7 +28,7 @@ class SymbolTableLevel
         void checkProcedures();
         Symbol* lookupVariable(std::string id);
         Type* lookupType(std::string id);
-        Type* addType(std::string id, Type::ValueType type, int size);
+        Type* addType(std::string id, Type::ValueType type, int size, bool _const = false, Type* nc = NULL);
 
 
     private:

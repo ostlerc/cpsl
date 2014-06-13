@@ -55,7 +55,7 @@ void Symbol::read()
     if(bison_verbose)
         cout << "\treading symbol " << toString() << endl;
 
-    if(Type::isConst(type->vt))
+    if(type->isConst())
     {
         if(bison_verbose) //skip this error (for files types we don't support yet)
         {

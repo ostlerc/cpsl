@@ -21,14 +21,21 @@ class Type
             Unknown
         };
 
-        Type(ValueType type, int size);
+        Type(std::string name, ValueType type, int size, bool _const, Type* nonc = NULL);
         virtual ~Type();
 
+        std::string name;
         ValueType vt;
         int size;
+        bool _const;
+        Type *nonconst_counterpart;
 
-        static Type* typeFunction() { static Type* t = new Type(Function, 0); return t; }
-        static Type* typeProcedure() { static Type* t = new Type(Procedure, 0); return t; }
+        std::string toString() const;
+
+        static Type* typeFunction() { static Type* t = new Type("function", Function, 0, false); return t; }
+        static Type* typeProcedure() { static Type* t = new Type("procedure", Procedure, 0, false); return t; }
+        static Type* typeArray() { static Type* t = new Type("array", Array, 0, false); return t; }
+        static Type* typeRecord() { static Type* t = new Type("record", Record, 0, false); return t; }
 
         static std::string constStringId() { return "0string"; }
         static std::string constIntegerId() { return "0integer"; }
@@ -38,10 +45,10 @@ class Type
         static std::string charId() { return "char"; }
         static std::string boolId() { return "boolean"; }
 
-        static bool isConst(ValueType);
+        bool isConst();
         static bool isFoldable(ValueType type);
         static bool match(ValueType lhs, ValueType rhs);
-        static ValueType nonconst_val(ValueType type);
+        Type* nonconst_val();
         static ValueType const_val(ValueType type);
         static std::string toString(ValueType);
         static std::string prefix(ValueType);

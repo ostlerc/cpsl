@@ -182,7 +182,7 @@ Expression* Expression::exec(Expression* e, Operation op)
                 loadInTemp();
 
                 string rhs_str;
-                if(!Type::isConst(e->symbol->type->vt))
+                if(!e->symbol->type->isConst())
                 {
                     e->loadInTemp();
                     rhs_str = e->reg->name();
@@ -312,7 +312,7 @@ Expression* Expression::exec(Operation op)
             {
                 Expression *e = new Expression(this);
 
-                if(Type::isConst(symbol->type->vt))
+                if(symbol->type->isConst())
                 {
                     switch(symbol->type->vt)
                     {
@@ -346,7 +346,7 @@ Expression* Expression::exec(Operation op)
         case Tilde:
             {
                 Expression *e = new Expression(this);
-                if(Type::isConst(symbol->type->vt))
+                if(symbol->type->isConst())
                 {
                     switch(symbol->type->vt)
                     {
@@ -386,7 +386,7 @@ void Expression::invalidType(Operation op)
 
 bool Expression::canFold(Expression* e)
 {
-    return Type::isConst(symbol->type->vt) && Type::isConst(e->symbol->type->vt) &&
+    return symbol->type->isConst() && e->symbol->type->isConst() &&
            Type::isFoldable(symbol->type->vt) && Type::isFoldable(e->symbol->type->vt);
 }
 
@@ -614,7 +614,7 @@ void Expression::assign(Symbol* s)
     }
 
     //s is actually the lhs
-    if(Type::isConst(s->type->vt))
+    if(s->type->isConst())
     {
         if(bison_verbose)
         {
@@ -683,7 +683,7 @@ void Expression::setType(Operation op, bool isConst)
             break;
     }
 
-    if(Type::isConst(symbol->type->vt) && isConst)
+    if(symbol->type->isConst() && isConst)
         t = Type::const_val(t);
 
     symbol->setType(t);
@@ -716,7 +716,7 @@ void Expression::setVal(int v)
     }
 }
 
-Type::ValueType Expression::type()
+Type* Expression::type()
 { 
-    return symbol->type->vt;
+    return symbol->type;
 }

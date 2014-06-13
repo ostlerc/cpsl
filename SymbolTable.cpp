@@ -41,7 +41,7 @@ SymbolTable* SymbolTable::instance()
 
 void SymbolTable::declare_const(std::string *name, Expression *exp)
 {
-    if(!Type::isConst(exp->symbol->type->vt))
+    if(!exp->symbol->type->isConst())
     {
         cerr << "attempt to assign non const expression on line " << yylineno << endl;
         exit(1);
@@ -165,18 +165,12 @@ Symbol* SymbolTable::findSymbol(string s, bool err)
     if(!err)
         return NULL;
 
-    if(bison_verbose)
-    {
-        cerr << "could not find symbol " << s << " line: " << yylineno << endl;
-        exit(1);
-    }
-    return NULL;
+    cerr << "could not find symbol " << s << " line: " << yylineno << endl;
+    exit(1);
 }
 
-void SymbolTable::create_vars(std::string type_string, vector<std::string> var_list)
+void SymbolTable::create_vars(Type *type, vector<std::string> var_list)
 {
-    Type* type = findType(type_string); //front is global
-
     for(int i = var_list.size()-1; i >= 0; i--)
     {
         levels.back()->addVariable(var_list[i], type);
@@ -230,14 +224,15 @@ void SymbolTable::begin()
 void SymbolTable::initialize()
 {
     //initialize types
-    cchar = levels.front()->addType(Type::constCharId(), Type::Const_Char, 0);
-    cint = levels.front()->addType(Type::constIntegerId(), Type::Const_Integer, 0);
-    cstr = levels.front()->addType(Type::constStringId(), Type::Const_String, 0);
-    cbool = levels.front()->addType(Type::constBoolId(), Type::Const_Bool, 0);
-
     boolt = levels.front()->addType(Type::boolId(), Type::Bool, 4);
     chart = levels.front()->addType(Type::charId(), Type::Char, 4);
     intt = levels.front()->addType(Type::integerId(), Type::Integer, 4);
+
+    cchar = levels.front()->addType(Type::constCharId(), Type::Const_Char, 0, true, chart);
+    cint = levels.front()->addType(Type::constIntegerId(), Type::Const_Integer, 0, true, intt);
+    cbool = levels.front()->addType(Type::constBoolId(), Type::Const_Bool, 0, true, boolt);
+    cstr = levels.front()->addType(Type::constStringId(), Type::Const_String, 0, true);
+
 
     //initialize bool types
     levels.front()->addVariable("true", cbool);
@@ -401,20 +396,20 @@ void SymbolTable::repeatStatement(std::string* lbl, Expression *e)
     e->free();
 }
 
-void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std::string type)
+void SymbolTable::procedureParams(string id, std::vector<Parameters> params, Type *type)
 {
     enterScope();
     cpsl_log->out << endl << "######################" << endl;
 
-    lbl_stack["return_type"].push(type);
+    type_stack["return_type"].push(type);
 
     Symbol *sym = findSymbol(procId(id, params), false);
     if(!sym)
     {
-        if(type.empty())
-            sym = forwardProc(id, params);
-        else
+        if(type)
             sym = forwardFunc(id, params, type);
+        else
+            sym = forwardProc(id, params);
     }
     else if(sym->type->vt != Type::Procedure && sym->type->vt != Type::Function)
     {
@@ -428,7 +423,7 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, std
     }
     else if(sym->type->vt == Type::Function)
     {
-        if(sym->returnType->vt != findType(type)->vt)
+        if(sym->returnType != type)
         {
             cerr << "incorrect return types for function " << id << ". Expecting type " << Type::toString(sym->returnType->vt) << " on line " << yylineno << endl;
             exit(1);
@@ -456,7 +451,7 @@ void SymbolTable::endProcedure(std::vector<Parameters> params)
     cpsl_log->out << "\tjr $ra" << endl;
     cpsl_log->out << "######################" << endl << endl;
     exitScope();
-    lbl_stack["return_type"].pop();
+    type_stack["return_type"].pop();
     lbl_stack["proc_lbl"].pop();
 }
 
@@ -465,18 +460,18 @@ void SymbolTable::_return(Expression *exp)
     if(bison_verbose)
         cout << "looking at you! " << exp->toString() << endl;
 
-    std::string type = lbl_stack["return_type"].top();
-    if(!!exp == type.empty())
+    Type *type = type_stack["return_type"].top();
+    /*if(exp->type() != type)
     {
-        cerr << "Missing or extra type on line " << yylineno << endl;
+        cerr << "Missing or extra type on line " << exp->toString() << "-" << type->toString() << yylineno << endl;
         exit(1);
-    }
+    }*/
 
     if(exp)
     {
         if(bison_verbose)
-            cout << "comparing" << type << Type::toString(exp->symbol->type->vt) << " on line " << yylineno << endl;
-        if(findType(type)->vt != Type::nonconst_val(exp->symbol->type->vt))
+            cout << "comparing" << type->toString() << Type::toString(exp->symbol->type->vt) << " on line " << yylineno << endl;
+        if(type != exp->type()->nonconst_val())
         {
             cerr << "Incorrect type on line " << yylineno << endl;
             cerr << "expecting type " << Type::toString(exp->symbol->type->vt) << endl;
@@ -508,7 +503,7 @@ void SymbolTable::callProc(std::string proc, vector<Expression*> expr_list)
 Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list, Type* fType)
 {
     std::string lbl = procId(proc, expr_list);
-    Symbol *s = findSymbol(lbl);
+    Symbol *s = findSymbol(lbl, true);
 
     if(s->type->vt != fType->vt)
     {
@@ -566,7 +561,7 @@ Symbol* SymbolTable::forwardProc(std::string id, std::vector<Parameters> params)
     return s;
 }
 
-Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params, std::string type)
+Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params, Type *type)
 {
     Symbol *s = findSymbol(procId(id, params), false);
     if(s)
@@ -575,7 +570,7 @@ Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params,
         exit(1);
     }
 
-    s = levels.front()->addFunction(procId(id, params), findType(type));
+    s = levels.front()->addFunction(procId(id, params), type);
     return s;
 }
 
@@ -621,7 +616,7 @@ std::string SymbolTable::paramsString(std::vector<Expression*>& exprs)
             ret += ".";
         else
             first = false;
-        std::string tstr = Type::toString(Type::nonconst_val(e->type()));
+        std::string tstr = Type::toString(e->type()->nonconst_val()->vt);
         ret += tstr;
     }
 
@@ -682,7 +677,7 @@ Type* SymbolTable::typeOf(Type::ValueType vt)
         case Type::Bool:
             return boolt;
         default:
-            cerr << "not a stored type on line " << yylineno << endl;
+            cerr << "not valid changeable stored type on line " << yylineno << endl;
             exit(1);
     }
 

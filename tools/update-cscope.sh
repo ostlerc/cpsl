@@ -1,10 +1,10 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 cd $DIR/..
 
-find -E `pwd` -type f  \
+find `pwd` -type f  \
     -regex '.*\.(cpp|h)' -and \
     -not -path '*.git' -and \
     -not -path '*.alt/*' -and \

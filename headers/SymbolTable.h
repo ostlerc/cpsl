@@ -34,7 +34,7 @@ class SymbolTable
     Type* findType(std::string, bool err = true);
 
     void declare_const(std::string *name, Expression* e);
-    void create_vars(std::string type_string, std::vector<std::string> var_list);
+    void create_vars(Type *type, std::vector<std::string> var_list);
     void read(std::vector<Symbol*> sym_list);
     void print(std::vector<Expression*> expr_list);
     void begin();
@@ -75,8 +75,8 @@ class SymbolTable
     Expression* unimp();
 
     Symbol* forwardProc(std::string id, std::vector<Parameters> params);
-    Symbol* forwardFunc(std::string id, std::vector<Parameters> params, std::string type);
-    void procedureParams(std::string id, std::vector<Parameters> params, std::string type = "");
+    Symbol* forwardFunc(std::string id, std::vector<Parameters> params, Type *type);
+    void procedureParams(std::string id, std::vector<Parameters> params, Type *type = NULL);
     void endProcedure(std::vector<Parameters> params);
     void callProc(std::string proc, std::vector<Expression*> expr_list = {});
     Expression* callFunc(std::string proc, std::vector<Expression*> expr_list = {});
@@ -97,6 +97,7 @@ class SymbolTable
     std::vector<SymbolTableLevel*> levels;
 
     std::map<std::string, std::stack<std::string>> lbl_stack;
+    std::map<std::string, std::stack<Type*>> type_stack;
 
     Type* cbool;
     Type* cint;

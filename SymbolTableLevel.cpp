@@ -98,7 +98,7 @@ void SymbolTableLevel::popVariable(std::string id, Type* type)
     }
 
     int size = type->size;
-    if(!Type::isConst(type->vt))
+    if(!type->isConst())
     {
         offset += size;
         cpsl_log->out << "\tadd $sp $sp " << size << " # popping " << id << "(" << offset << ") on line " << yylineno << endl;
@@ -113,7 +113,7 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 
     int size = type->size;
 
-    if(!Type::isConst(type->vt))
+    if(!type->isConst())
     {
 
         if(globalScope && named)
@@ -159,9 +159,9 @@ Type* SymbolTableLevel::lookupType(std::string id)
     return var->second;
 }
 
-Type* SymbolTableLevel::addType(std::string id, Type::ValueType type, int size)
+Type* SymbolTableLevel::addType(std::string id, Type::ValueType type, int size, bool _const, Type* nc)
 {
     checkId(id);
-    types[id] = new Type(type, size);
+    types[id] = new Type(id, type, size, _const, nc);
     return types[id];
 }
