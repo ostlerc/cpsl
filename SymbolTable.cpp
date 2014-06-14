@@ -645,8 +645,6 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
     Expression *new_index = index->exec(new Expression(new Symbol(s->type->start_index)), Expression::Sub);
     Expression *delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
     delta_offset->loadInTemp();
-    if(bison_verbose)
-        cout << "looking at " << index->toString() << endl;
     cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
 
     std::string newName = Symbol::GetLabel("_" + id);

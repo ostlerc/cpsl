@@ -7,7 +7,6 @@ using namespace std;
 
 const int treg_size = 10;
 const int sreg_size = 8;
-const int preg_size = 1;
 
 vector<Register*> Register::temp_registers;
 vector<Register*> Register::save_registers;
@@ -89,7 +88,7 @@ string Register::toString()
 void Register::ReleaseRegister(Register* reg)
 {
     if(bison_verbose)
-        cout << "releasing register " << reg->toString();
+        cout << "releasing register " << reg->toString() << endl;
 
     if(!reg) { cerr << "attempt to release NULL register line: " << yylineno << endl; exit(1); }
     Register *r = NULL;

@@ -125,6 +125,12 @@ bool Type::match(ValueType lhs, ValueType rhs)
     if(lhs == Unknown || rhs == Unknown)
         return false;
 
+    if(lhs == Array || rhs == Array)
+        return lhs == rhs;
+
+    if(lhs == Record || rhs == Record)
+        return lhs == rhs;
+
     //if(nonconst_val(lhs) == nonconst_val(rhs))
     return true;
 }

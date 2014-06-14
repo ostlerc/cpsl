@@ -561,6 +561,12 @@ void Expression::loadInTemp(bool force)
                     << " # Loading " << toString() << " on line: " << yylineno << endl;
             }
             break;
+        case Type::Array: //load memory address (pointer) into register
+            {
+                cpsl_log->out << "\tadd " << reg->name() << ", " << symbol->reg() << ", " << symbol->offset
+                    << "#Loading array symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
+            }
+            break;
         case Type::Unknown:
             {
                 //Skip unknown for now
@@ -640,29 +646,54 @@ void Expression::assign(Symbol* s)
         return;
     }
 
-    loadInTemp();
     switch(s->type->vt)
     {
         case Type::Bool:
         case Type::Char:
             {
+                loadInTemp();
                 cpsl_log->out << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
-        case Type::Const_Integer:
-        case Type::Const_Bool:
-        case Type::Const_Char:
         case Type::Integer:
             {
+                loadInTemp();
                 cpsl_log->out << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
-        break;
+            break;
+        case Type::Array:
+            {
+                if(symbol->type != s->type)
+                {
+                    cerr << "type mismatch. '" 
+                        << toString() << "'-'"
+                        << s->toString() << "' on line " << yylineno << endl;
+                    exit(1);
+                }
+
+                int count = s->type->size / s->type->array_type->size;
+                if(bison_verbose)
+                    cout  << "there are " << count << " items in array " << s->toString() << " on line " << yylineno << endl;
+
+                Register *dat = Register::FindRegister(Register::Temp);
+                for(int i = 0; i < count; i++)
+                {
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << symbol->offset + i*s->type->array_type->size << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s->offset + i*s->type->array_type->size << "(" << s->reg() << ") #Assign var (" << s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                }
+                Register::ReleaseRegister(dat);
+                dat = NULL;
+            }
+            break;
         default:
-        {
-            cerr << "attempting to assign unsupported type " << s->type->toString() << " on line " << yylineno << endl;
-            exit(1);
-        }
+            {
+                cerr << "attempting to assign unsupported type " << s->type->toString() << " on line " << yylineno << endl;
+                exit(1);
+            }
     }
+
+    if(symbol->rp)
+        Register::ReleaseRegister(symbol->rp);
 
     symbol = new Symbol(s);
 
@@ -675,7 +706,7 @@ void Expression::assign(Symbol* s)
 void Expression::setType(Operation op, bool isConst)
 {
     if(bison_verbose)
-        cpsl_log->out << "setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
+        cout << "setting type for expr " << toString() << " with oper " << toString(op) << " on line " << yylineno << endl;
 
     Type::ValueType t = Type::Unknown;
     switch(op)
