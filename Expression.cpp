@@ -649,11 +649,19 @@ void Expression::assign(Symbol* s)
                 cpsl_log->out << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
-        default:
+        case Type::Const_Integer:
+        case Type::Const_Bool:
+        case Type::Const_Char:
+        case Type::Integer:
             {
                 cpsl_log->out << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
         break;
+        default:
+        {
+            cerr << "attempting to assign unsupported type " << s->type->toString() << " on line " << yylineno << endl;
+            exit(1);
+        }
     }
 
     symbol = new Symbol(s);

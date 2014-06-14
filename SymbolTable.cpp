@@ -265,6 +265,7 @@ void SymbolTable::end()
 Expression* SymbolTable::assign(std::string s, Expression* e)
 {
     e->assign(findSymbol(s));
+    checkRegisters();
     return e;
 }
 
@@ -272,6 +273,7 @@ Expression* SymbolTable::assign(Expression* lhs, Expression* e)
 {
     e->assign(lhs->symbol);
     lhs->free();
+    checkRegisters();
     return e;
 }
 
@@ -646,11 +648,6 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
     if(bison_verbose)
         cout << "looking at " << index->toString() << endl;
     cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
-    /*Register *s_reg = Register::FindRegister(Register::Save);
-    delta_offset->free();
-    delta_offset->reg = s_reg;
-    delta_offset->loadInTemp(true);
-    delta_offset->reg = NULL;*/
 
     std::string newName = Symbol::GetLabel("_" + id);
     Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg));
