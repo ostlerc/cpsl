@@ -29,12 +29,13 @@ class Type
         int size;
         bool _const;
         Type *nonconst_counterpart;
+        int start_index;
+        Type *array_type;
 
         std::string toString() const;
 
         static Type* typeFunction() { static Type* t = new Type("function", Function, 0, false); return t; }
         static Type* typeProcedure() { static Type* t = new Type("procedure", Procedure, 0, false); return t; }
-        static Type* typeArray() { static Type* t = new Type("array", Array, 0, false); return t; }
         static Type* typeRecord() { static Type* t = new Type("record", Record, 0, false); return t; }
 
         static std::string constStringId() { return "0string"; }

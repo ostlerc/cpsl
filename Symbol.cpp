@@ -23,14 +23,32 @@ Symbol::Symbol(Symbol* s)
     char_value = s->char_value;
     offset = s->offset;
     type = s->type;
-    global = s->global;
+    subType = s->subType;
+    regPointer = s->regPointer;
+    rp = s->rp;
+    s->rp = NULL;
 }
 
 Symbol::Symbol(std::string& name, int offset, Type *type, bool global)
     : name(name)
     , offset(offset)
     , type(type)
-    , global(global)
+    , regPointer( global ? "$gp" : "$fp" )
+    , rp(NULL)
+{
+    if(!type)
+    {
+        std::cerr << "attempt to create symbol with NULL type on line " << yylineno << std::endl;
+        exit(1);
+    }
+}
+
+Symbol::Symbol(std::string& name, int offset, Type *type, Register* _reg)
+    : name(name)
+    , offset(offset)
+    , type(type)
+    , regPointer(_reg->name())
+    , rp(_reg)
 {
     if(!type)
     {
@@ -188,4 +206,9 @@ void Symbol::setType(Type::ValueType vt)
     }
 
     type = SymbolTable::instance()->typeOf(vt);
+}
+
+std::string Symbol::reg()
+{
+    return regPointer;
 }

@@ -21,6 +21,7 @@ class SymbolTableLevel
         void unloadParams(std::vector<Parameters> params);
         void saveExpressions(std::vector<Expression*> expr_list);
 
+        void add_const(std::string id, Symbol *s);
         Symbol* addVariable(std::string id, Type *type, bool named = true);
         void popVariable(std::string id, Type *type);
         Symbol* addProcedure(std::string id);

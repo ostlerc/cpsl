@@ -51,11 +51,11 @@ extern "C" int yylex();
 %token <str_val> IDENTSYM
 
 %type <exprptr> expression
-%type <symptr> lValue;
-%type <sym_list> lValueList;
+%type <exprptr> lValue;
+%type <expr_list> lValueList;
 %type <typeexpr> type;
-/*%type <str_val> arrayType;*/
-/*%type <str_val> recordType;*/
+%type <typeexpr> arrayType;
+/*%type <typeexpr> recordType;*/
 %type <paramptr> formalParameter;
 %type <param_list> formalParameters;
 %type <str_val> whileHead; /*return start label*/
@@ -163,30 +163,28 @@ statement: assignment
          ;
 assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $3); }
           ;
-lValue: IDENTSYM lValueHelper { $$ = SymbolTable::instance()->findSymbol(*$1); }
+lValue: IDENTSYM { $$ = new Expression(SymbolTable::instance()->findSymbol(*$1)); }
+      | IDENTSYM DOTOSYM IDENTSYM { $$ = NULL; }
+      | IDENTSYM LBRACKETOSYM expression RBRACKETOSYM { $$ = SymbolTable::instance()->arrayIndex(*$1, $3); }
       ;
-lValueHelper: /*empty*/
-            | lValueHelper DOTOSYM IDENTSYM
-            | lValueHelper LBRACKETOSYM expression RBRACKETOSYM
-            ;
-lValueList: lValue { $$ = new SymList($1); }
+lValueList: lValue { $$ = new ExprList($1); }
           | lValueList COMMAOSYM lValue { $$ = $1->add($3); }
           ;
 ifStatement: ifCondition elseifStatement elseStatement ENDSYM { SymbolTable::instance()->ifStatement(); }
            ;
-ifCondition: ifExpr statementSequence { SymbolTable::instance()->ifCondition($1); }
+ifCondition: ifExpr statementSequence { SymbolTable::instance()->ifCondition(*$1); }
            ;
 ifExpr: IFSYM expression THENSYM { $$ = SymbolTable::instance()->ifExpr($2); }
       ;
 elseifStatement: /*empty*/
-               | elseifExpr statementSequence { SymbolTable::instance()->elseifStatement($1); }
+               | elseifExpr statementSequence { SymbolTable::instance()->elseifStatement(*$1); }
                ;
 elseifExpr: elseifStatement ELSEIFSYM expression THENSYM { $$ = SymbolTable::instance()->elseifExpr($3); }
           ;
 elseStatement: /*empty*/
              | ELSESYM statementSequence
              ;
-whileStatement: whileHead whileExpr statementSequence ENDSYM { SymbolTable::instance()->whileStatement($1, $2); }
+whileStatement: whileHead whileExpr statementSequence ENDSYM { SymbolTable::instance()->whileStatement(*$1, *$2); }
               ;
 whileExpr: expression DOSYM { $$ = SymbolTable::instance()->whileExpr($1); }
          ;
@@ -195,13 +193,12 @@ whileHead: WHILESYM { $$ = SymbolTable::instance()->whileStart(); }
 repeatStatement: repeatHead statementSequence UNTILSYM expression { SymbolTable::instance()->repeatStatement($1, $4); }
                ;
 repeatHead: REPEATSYM { $$ = SymbolTable::instance()->repeatHead(); }
-forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement($2); }
+forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement(*$2); }
             ;
 forExpr: forAssign TOSYM     expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ); }
        | forAssign DOWNTOSYM expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred); }
        ;
-forAssign: IDENTSYM ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign(*$1, $3);
-         }
+forAssign: IDENTSYM ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign(*$1, $3); }
          ;
 stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
              ;
@@ -220,16 +217,18 @@ nullStatement: /* empty */
 assignStatements: assignStatement
                 | assignStatements assignStatement
                 ;
-assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->declare_const($1, $3); }
+assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->declare_const(*$1, $3); }
                ;
 typeStatements: typeStatement
               | typeStatements typeStatement
               ;
-typeStatement: IDENTSYM EQOSYM type SEMIOSYM { if(bison_verbose) std::cout << "type defined '" << *$1 << std::endl; }
+typeStatement: typeHead EQOSYM type SEMIOSYM
              ;
+typeHead: IDENTSYM { SymbolTable::instance()->startTypeDeclare(*$1); }
+        ;
 type: IDENTSYM { $$ = SymbolTable::instance()->findType(*$1); }
     | recordType { $$ = Type::typeRecord(); }
-    | arrayType  { $$ = Type::typeArray(); }
+    | arrayType  { $$ = $1; }
     ;
 recordType: RECORDSYM recordDecls ENDSYM
           ;
@@ -246,7 +245,7 @@ commaIdentifiers: commaIdentifiers commaIdentifier { $$ = $1->add(*$2); }
                 ;
 commaIdentifier: COMMAOSYM IDENTSYM { $$ = $2; }
                ;
-arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type /*{ SymbolTable::instance()->arrayType($3, $5, $8); }*/
+arrayType:  ARRAYSYM LBRACKETOSYM expression COLONOSYM expression RBRACKETOSYM OFSYM type { $$ = SymbolTable::instance()->arrayType($3, $5, $8); }
          ;
 expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | CHAROSYM { $$ = SymbolTable::instance()->expression_char($1); }
@@ -274,7 +273,7 @@ expression: INTOSYM { $$ = SymbolTable::instance()->expression($1); }
           | ORDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Ord); }
           | PREDSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Pred); }
           | SUCCSYM LPARENOSYM expression RPARENOSYM { $$ = $3->exec(Expression::Succ); }
-          | lValue { $$ = SymbolTable::instance()->lValue($1); }
+          | lValue { $$ = $1; }
           ;
 expressionList: expression { $$ = new ExprList($1); }
               | expressionList COMMAOSYM expression { $1->add($3); }

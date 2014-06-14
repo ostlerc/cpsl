@@ -13,6 +13,8 @@ Type::Type(std::string name, ValueType type, int size, bool _const, Type* nonc)
     , size(size)
     , _const(_const)
     , nonconst_counterpart(nonc)
+    , start_index(0)
+    , array_type(NULL)
 { }
 
 Type::~Type() {}
@@ -167,5 +169,8 @@ auto Type::const_val(ValueType type) -> ValueType
 
 std::string Type::toString() const
 {
-    return toString(vt) + " " + name;
+    if(vt == Function || vt == Procedure || vt == Array || vt == Record)
+        return toString(vt) + " " + name;
+
+    return toString(vt);
 }

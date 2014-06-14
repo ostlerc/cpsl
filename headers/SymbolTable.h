@@ -28,14 +28,14 @@ class SymbolTable
     Expression* expression(std::string*);
     Expression* expression_string(std::string*);
     Expression* expression_char(std::string*);
-    Expression* lValue(Symbol* s);
 
     Symbol* findSymbol(std::string, bool err = true);
     Type* findType(std::string, bool err = true);
 
-    void declare_const(std::string *name, Expression* e);
+    void startTypeDeclare(std::string name);
+    void declare_const(std::string name, Expression* e);
     void create_vars(Type *type, std::vector<std::string> var_list);
-    void read(std::vector<Symbol*> sym_list);
+    void read(std::vector<Expression*> expr_list);
     void print(std::vector<Expression*> expr_list);
     void begin();
     void initialize();
@@ -43,7 +43,7 @@ class SymbolTable
     void checkRegisters();
     void enterScope();
     void exitScope();
-    Expression* assign(Symbol* s, Expression* e);
+    Expression* assign(Expression* lhs, Expression* e);
     Expression* assign(std::string s, Expression* e);
 
     void push(std::string reg);
@@ -53,19 +53,19 @@ class SymbolTable
     //while
     std::string* whileStart();
     std::string* whileExpr(Expression* e);
-    void whileStatement(std::string* startLbl, std::string *endLbl);
+    void whileStatement(std::string startLbl, std::string endLbl);
     void stop();
 
     //if
     std::string* ifExpr(Expression* e);
-    void ifCondition(std::string* endLbl);
+    void ifCondition(std::string endLbl);
     void ifStatement();
     std::string* elseifExpr(Expression *e);
-    void elseifStatement(std::string* lbl);
+    void elseifStatement(std::string lbl);
 
     //for
     std::string* forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
-    void forStatement(std::string* lbl);
+    void forStatement(std::string lbl);
 
     //repeat
     std::string* repeatHead();
@@ -82,6 +82,9 @@ class SymbolTable
     Expression* callFunc(std::string proc, std::vector<Expression*> expr_list = {});
     Symbol* procBoiler(std::string proc, std::vector<Expression*> expr_list, Type* fType);
     void _return(Expression* exp = NULL);
+
+    Type* arrayType(Expression *lhs, Expression *rhs, Type *type);
+    Expression* arrayIndex(std::string id, Expression *index);
 
     std::string paramsString(Parameters params);
     std::string paramsString(std::vector<Expression*>& exprs);

@@ -7,6 +7,7 @@ using namespace std;
 
 const int treg_size = 10;
 const int sreg_size = 8;
+const int preg_size = 1;
 
 vector<Register*> Register::temp_registers;
 vector<Register*> Register::save_registers;

@@ -49,7 +49,7 @@ Symbol* SymbolTableLevel::addFunction(std::string id, Type *returnType)
     variables[id] = new Symbol(id, -1, Type::typeFunction());
     //I am using this bool_value as a flag if the procedure has been declared or not
     variables[id]->bool_value = false;
-    variables[id]->returnType = returnType;
+    variables[id]->subType = returnType;
     return variables[id];
 }
 
@@ -103,6 +103,19 @@ void SymbolTableLevel::popVariable(std::string id, Type* type)
         offset += size;
         cpsl_log->out << "\tadd $sp $sp " << size << " # popping " << id << "(" << offset << ") on line " << yylineno << endl;
     }
+}
+
+void SymbolTableLevel::add_const(std::string id, Symbol *s)
+{
+    checkId(id);
+    if(!s->type->isConst())
+    {
+        cerr << "attempt to store non const variable on line " << yylineno << endl;
+        exit(1);
+    }
+
+    s->name = id;
+    variables[id] = s;
 }
 
 Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)

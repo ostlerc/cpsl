@@ -39,7 +39,7 @@ SymbolTable* SymbolTable::instance()
     return st;
 }
 
-void SymbolTable::declare_const(std::string *name, Expression *exp)
+void SymbolTable::declare_const(std::string name, Expression *exp)
 {
     if(!exp->symbol->type->isConst())
     {
@@ -47,7 +47,7 @@ void SymbolTable::declare_const(std::string *name, Expression *exp)
         exit(1);
     }
 
-    levels.back()->addVariable(*name, exp->symbol->type);
+    levels.back()->add_const(name, exp->symbol);
 }
 
 Expression* SymbolTable::expression(int i)
@@ -61,12 +61,6 @@ Expression* SymbolTable::unimp()
 {
     cerr << "Unimplemented function " << __FUNCTION__ << " line: " << yylineno << endl;
     exit(1);
-}
-
-Expression* SymbolTable::lValue(Symbol* s)
-{
-    Expression *e = new Expression(s);
-    return e;
 }
 
 Expression* SymbolTable::expression_string(string* s)
@@ -200,16 +194,16 @@ void SymbolTable::checkRegisters()
     }
 }
 
-void SymbolTable::read(vector<Symbol*> sym_list)
+void SymbolTable::read(vector<Expression*> expr_list)
 {
-    if(sym_list.size() == 0)
+    if(expr_list.size() == 0)
     {
         cerr << "Missing arguments on line: " << yylineno << endl;
         exit(1);
     }
 
-    for(unsigned int i = 0; i < sym_list.size(); i++)
-        sym_list[i]->read();
+    for(unsigned int i = 0; i < expr_list.size(); i++)
+        expr_list[i]->symbol->read();
 
     checkRegisters();
 }
@@ -270,12 +264,14 @@ void SymbolTable::end()
 
 Expression* SymbolTable::assign(std::string s, Expression* e)
 {
-    return assign(findSymbol(s), e);
+    e->assign(findSymbol(s));
+    return e;
 }
 
-Expression* SymbolTable::assign(Symbol* s, Expression* e)
+Expression* SymbolTable::assign(Expression* lhs, Expression* e)
 {
-    e->assign(s);
+    e->assign(lhs->symbol);
+    lhs->free();
     return e;
 }
 
@@ -298,10 +294,10 @@ string* SymbolTable::whileExpr(Expression* e)
     return endLbl;
 }
 
-void SymbolTable::whileStatement(std::string* startLbl, std::string *endLbl)
+void SymbolTable::whileStatement(std::string startLbl, std::string endLbl)
 {
-    cpsl_log->out << "\tj " << *startLbl << " # end while on line " << yylineno << endl;
-    cpsl_log->out << *endLbl << ".stop:" << endl;
+    cpsl_log->out << "\tj " << startLbl << " # end while on line " << yylineno << endl;
+    cpsl_log->out << endLbl << ".stop:" << endl;
     lbl_stack["stop"].pop();
 }
 
@@ -314,13 +310,13 @@ string* SymbolTable::ifExpr(Expression* e)
     return endLbl;
 }
 
-void SymbolTable::ifCondition(std::string* endLbl)
+void SymbolTable::ifCondition(std::string endLbl)
 {
     string endifLbl = Symbol::GetLabel("EIf");
     cpsl_log->out << "\tj " << endifLbl << " #end 'if' on line " << yylineno << endl;
     lbl_stack["if"].push(endifLbl);
 
-    cpsl_log->out << *endLbl << ":" << endl;
+    cpsl_log->out << endLbl << ":" << endl;
 }
 
 void SymbolTable::ifStatement()
@@ -338,10 +334,10 @@ string* SymbolTable::elseifExpr(Expression *e)
     return lbl;
 }
 
-void SymbolTable::elseifStatement(std::string* lbl)
+void SymbolTable::elseifStatement(std::string lbl)
 {
     cpsl_log->out << "\tj " << lbl_stack["if"].top() << endl;
-    cpsl_log->out << *lbl << ": " << " # end 'elseif' from line: " << yylineno << endl;
+    cpsl_log->out << lbl << ": " << " # end 'elseif' from line: " << yylineno << endl;
 }
 
 void SymbolTable::stop()
@@ -372,10 +368,10 @@ string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Opera
     return lbl;
 }
 
-void SymbolTable::forStatement(string* lbl)
+void SymbolTable::forStatement(string lbl)
 {
-    cpsl_log->out << "\tj " << *lbl << ".start" << endl;
-    cpsl_log->out << *lbl << ".stop: # end for on line " << yylineno << std::endl;
+    cpsl_log->out << "\tj " << lbl << ".start" << endl;
+    cpsl_log->out << lbl << ".stop: # end for on line " << yylineno << std::endl;
     lbl_stack["stop"].pop();
 }
 
@@ -423,9 +419,9 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, Typ
     }
     else if(sym->type->vt == Type::Function)
     {
-        if(sym->returnType != type)
+        if(sym->subType != type)
         {
-            cerr << "incorrect return types for function " << id << ". Expecting type " << Type::toString(sym->returnType->vt) << " on line " << yylineno << endl;
+            cerr << "incorrect return types for function " << id << ". Expecting type " << Type::toString(sym->subType->vt) << " on line " << yylineno << endl;
             exit(1);
         }
     }
@@ -536,9 +532,9 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     Symbol *s = procBoiler(func, expr_list, Type::typeFunction());
 
     if(bison_verbose)
-        cout << "return type for function " << func << " is " << Type::toString(s->returnType->vt) << " on line " << yylineno << endl;
+        cout << "return type for function " << func << " is " << Type::toString(s->subType->vt) << " on line " << yylineno << endl;
     //Assign return value to expression
-    Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->returnType, false);
+    Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->subType, false);
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
@@ -572,6 +568,95 @@ Symbol* SymbolTable::forwardFunc(std::string id, std::vector<Parameters> params,
 
     s = levels.front()->addFunction(procId(id, params), type);
     return s;
+}
+
+void SymbolTable::startTypeDeclare(std::string name)
+{
+    lbl_stack["type_name"].push(name);
+}
+
+Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
+{
+    if(lhs->type()->vt != Type::Const_Integer)
+    {
+        cerr << "Unsupported array expression type " << lhs->type()->toString() << " on line " << yylineno << endl;
+        exit(1);
+    }
+    else if(rhs->type()->vt != Type::Const_Integer)
+    {
+        cerr << "Unsupported array expression type " << rhs->type()->toString() << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    int range = rhs->symbol->int_value - lhs->symbol->int_value;
+
+    if(range < 1)
+    {
+        cerr << "Unsupported array range '" << range << "'. Must be greater than 0 on line " << yylineno << endl;
+        exit(1);
+    }
+
+    Type* t = NULL;
+    string id = lbl_stack["type_name"].top();
+    if(!id.empty())
+    {
+        t = findType(id, false);
+        if(t)
+        {
+            cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
+            exit(1);
+        }
+
+        if(bison_verbose)
+            cout << "adding type " << id << " on line " << yylineno << endl;
+        t = levels.front()->addType(id, Type::Array, (range+1)*type->size, false);
+        t->array_type = type->nonconst_val();
+        lbl_stack["type_name"].pop();
+        t->start_index = lhs->symbol->int_value;
+    }
+    else
+    {
+        cerr << "undefined array type on line " << yylineno << endl;
+        exit(1);
+    }
+
+    return type;
+}
+
+Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
+{
+    if(index->type()->nonconst_val()->vt != Type::Integer)
+    {
+        cerr << "Unsupported index type " << index->type()->toString() << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    Symbol *s = findSymbol(id);
+
+    if(!s->type || !s->type->array_type)
+    {
+        cerr << "uninitialized array on line " << yylineno << endl;
+        exit(1);
+    }
+
+    Expression *size = new Expression(new Symbol(s->type->array_type->size));
+    Expression *new_index = index->exec(new Expression(new Symbol(s->type->start_index)), Expression::Sub);
+    Expression *delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
+    delta_offset->loadInTemp();
+    if(bison_verbose)
+        cout << "looking at " << index->toString() << endl;
+    cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
+    /*Register *s_reg = Register::FindRegister(Register::Save);
+    delta_offset->free();
+    delta_offset->reg = s_reg;
+    delta_offset->loadInTemp(true);
+    delta_offset->reg = NULL;*/
+
+    std::string newName = Symbol::GetLabel("_" + id);
+    Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg));
+    delta_offset->reg = NULL;
+
+    return ret;
 }
 
 void SymbolTable::push(std::string reg)

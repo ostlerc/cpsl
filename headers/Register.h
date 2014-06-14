@@ -10,7 +10,7 @@ class Register
         enum RegisterType
         {
             Temp,
-            Save
+            Save,
         };
 
         static int reservedRegisters();

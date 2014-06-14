@@ -56,13 +56,14 @@ class Expression
 
         void print(); //print expression result to prompt
 
-        void loadInTemp();
+        void loadInTemp(bool force = false);
         void free(); //release temporary register
 
         void invalidType(Operation op);
         void setType(Operation op, bool isConst = true);
         void store(int offset = -1, std::string reg = "");
         Type *type();
+        Symbol *getSymbol() { return symbol; }
 
     private:
 

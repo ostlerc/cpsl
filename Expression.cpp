@@ -73,7 +73,7 @@ string Expression::toString(Operation op)
 Expression* Expression::exec(Expression* e, Operation op)
 {
     if(bison_verbose)
-        cpsl_log->out << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
+        cout << "exec on " << toString() << " " << toString(op) << " " << e->toString() << " on line: " << yylineno << endl;
 
     int rhs_v = 0;
     switch(e->symbol->type->vt)
@@ -120,7 +120,7 @@ Expression* Expression::exec(Expression* e, Operation op)
         }
 
         if(bison_verbose)
-            cpsl_log->out << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
+            cout << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
 
         switch(op)
         {
@@ -508,12 +508,19 @@ void Expression::print()
     free();
 }
 
-void Expression::loadInTemp()
+void Expression::loadInTemp(bool force)
 {
-    if(reg)//already done!
+    if(reg && !force)//already done!
         return;
 
-    reg = Register::FindRegister(Register::Temp);
+    if(!force)
+        reg = Register::FindRegister(Register::Temp);
+
+    if(!reg)
+    {
+        cerr << "NULL reg on line " << yylineno << endl;
+        exit(1);
+    }
 
     switch(symbol->type->vt)
     {
@@ -574,6 +581,11 @@ void Expression::free()
         Register::ReleaseRegister(reg);
         reg = NULL;
     }
+    if(symbol->rp)
+    {
+        Register::ReleaseRegister(symbol->rp);
+        symbol->rp = NULL;
+    }
 }
 
 void Expression::store(int offset, std::string regstr)
@@ -589,15 +601,19 @@ void Expression::store(int offset, std::string regstr)
     switch(symbol->type->vt)
     {
         case Type::Bool:
+            {
+                cpsl_log->out << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            }
+            break;
         case Type::Char:
-        {
-            cpsl_log->out << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
-        }
-        break;
+            {
+                cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            }
+            break;
         default:
-        {
-            cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
-        }
+            {
+                cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+            }
     }
 
     free();
@@ -645,8 +661,7 @@ void Expression::assign(Symbol* s)
     if(bison_verbose)
         cout << "assigned" << toString() << endl;
 
-    Register::ReleaseRegister(reg);
-    reg = NULL;
+    free();
 }
 
 void Expression::setType(Operation op, bool isConst)
