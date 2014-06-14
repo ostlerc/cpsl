@@ -51,6 +51,7 @@ class Symbol
 
         std::string toString();
         std::string reg();
+        void setReg(std::string reg);
 
         void read();
         void store();

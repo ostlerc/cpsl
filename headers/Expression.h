@@ -61,7 +61,7 @@ class Expression
 
         void invalidType(Operation op);
         void setType(Operation op, bool isConst = true);
-        void store(int offset = -1, std::string reg = "");
+        void store(int offset = -1, std::string reg = "", bool reg_global = true);
         Type *type();
         Symbol *getSymbol() { return symbol; }
 

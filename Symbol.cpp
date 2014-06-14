@@ -215,3 +215,8 @@ std::string Symbol::reg()
 {
     return regPointer;
 }
+
+void Symbol::setReg(std::string reg)
+{
+    regPointer = reg;
+}

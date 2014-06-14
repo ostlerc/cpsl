@@ -31,6 +31,7 @@ class SymbolTableLevel
         Type* lookupType(std::string id);
         Type* addType(std::string id, Type::ValueType type, int size, bool _const = false, Type* nc = NULL);
         void linkType(std::string id, Type* t);
+        void cleanup();
 
     private:
         void checkId(std::string id);

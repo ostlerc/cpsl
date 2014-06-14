@@ -449,10 +449,9 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, Typ
 void SymbolTable::endProcedure(std::vector<Parameters> params)
 {
     cpsl_log->out << "proc." << lbl_stack["proc_lbl"].top() << ".end:" << endl;
-    levels.back()->unloadParams(params);
+    exitScope();
     cpsl_log->out << "\tjr $ra" << endl;
     cpsl_log->out << "######################" << endl << endl;
-    exitScope();
     type_stack["return_type"].pop();
     lbl_stack["proc_lbl"].pop();
 }
@@ -494,6 +493,7 @@ void SymbolTable::enterScope()
 
 void SymbolTable::exitScope()
 {
+    levels.back()->cleanup();
     levels.pop_back();
 }
 
@@ -541,11 +541,22 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
         cout << "return type for function " << func << " is " << Type::toString(s->subType->vt) << " on line " << yylineno << endl;
     //Assign return value to expression
     Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->subType, false);
+
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
-    ret->reg = tmp;
-    ret->store(-1, "$fp");
+    if(s->subType->vt == Type::Array)
+    {
+        cpsl_log->out << "#HERE!!! :D" << endl;
+        ret_sym->setReg(tmp->name());
+        ret_sym->rp = tmp;
+        ret->store(-1, "$fp", false);
+    }
+    else
+    {
+        ret->reg = tmp;
+        ret->store(-1, "$fp", false);
+    }
     return ret;
 }
 
@@ -645,21 +656,14 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
         exit(1);
     }
 
-    Expression *size = new Expression(new Symbol(s->type->array_type->size));
+    int array_size = s->global ? s->type->array_type->size : -s->type->array_type->size;
+    Expression *size = new Expression(new Symbol(array_size));
     Expression *new_index = index->exec(new Expression(new Symbol(s->type->start_index)), Expression::Sub);
 
     Expression *delta_offset;
     delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
     delta_offset->loadInTemp();
-    if(index->symbol->global)
-    {
-        cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
-    }
-    else
-    {
-        cpsl_log->out << "\tsub " << delta_offset->reg->name() << ", " << s->reg() << ", " << delta_offset->reg->name() << endl; 
-    }
-
+    cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl;
 
     std::string newName = Symbol::GetLabel("_" + id);
     Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg, s->global));

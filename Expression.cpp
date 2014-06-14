@@ -594,10 +594,8 @@ void Expression::free()
     }
 }
 
-void Expression::store(int offset, std::string regstr)
+void Expression::store(int offset, std::string regstr, bool reg_global)
 {
-    loadInTemp();
-
     if(offset == -1)
         offset = symbol->offset;
 
@@ -608,7 +606,9 @@ void Expression::store(int offset, std::string regstr)
     {
         case Type::Bool:
             {
+                loadInTemp();
                 cpsl_log->out << "\tsb " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+                free();
             }
             break;
         case Type::Char:
@@ -617,7 +617,9 @@ void Expression::store(int offset, std::string regstr)
         case Type::Const_Integer:
         case Type::Const_Bool:
             {
+                loadInTemp();
                 cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+                free();
             }
             break;
         case Type::Array:
@@ -635,9 +637,10 @@ void Expression::store(int offset, std::string regstr)
                 Register *dat = Register::FindRegister(Register::Temp);
                 for(int i = 0; i < count; i++)
                 {
-                    int i_offset = symbol->offset + i*symbol->type->array_type->size;
-                    cpsl_log->out << "\tlw " << dat->name() << ", " << i_offset << "(" << symbol->reg() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << -i_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
+                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
+                    int s_offset = symbol->offset + (i*symbol->type->array_type->size * (reg_global ? 1 : -1));
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
                 }
                 Register::ReleaseRegister(dat);
                 dat = NULL;
@@ -649,8 +652,6 @@ void Expression::store(int offset, std::string regstr)
                 exit(1);
             }
     }
-
-    free();
 }
 
 void Expression::assign(Symbol* s)
@@ -704,10 +705,18 @@ void Expression::assign(Symbol* s)
                     cout  << "there are " << count << " items in array " << s->toString() << " on line " << yylineno << endl;
 
                 Register *dat = Register::FindRegister(Register::Temp);
+
+                if(symbol->reg() == dat->name())
+                {
+                    cerr << "attempt reusing a register that was freed previously... " << dat->name() << endl;
+                    exit(1);
+                }
                 for(int i = 0; i < count; i++)
                 {
-                    cpsl_log->out << "\tlw " << dat->name() << ", " << symbol->offset + i*s->type->array_type->size << "(" << symbol->reg() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << s->offset + i*s->type->array_type->size << "(" << s->reg() << ") #Assign var (" << s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
+                    int s_offset = s->offset + (i*s->type->array_type->size * (s->global ? 1 : -1));
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
                 }
                 Register::ReleaseRegister(dat);
                 dat = NULL;

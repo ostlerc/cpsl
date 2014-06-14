@@ -118,6 +118,18 @@ void SymbolTableLevel::add_const(std::string id, Symbol *s)
     variables[id] = s;
 }
 
+void SymbolTableLevel::cleanup()
+{
+    if(globalScope)
+        return;
+
+    for(auto rit = variables.rbegin(); rit != variables.rend(); rit++)
+    {
+        popVariable(rit->first, rit->second->type);
+    }
+
+}
+
 Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 {
     checkId(id);
@@ -131,13 +143,13 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 
         if(globalScope && named)
         {
-            offset += size;
             cpsl_log->out << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
+            offset += size;
         }
         else
         {
-            offset -= size;
             cpsl_log->out << "\tadd $sp $sp " << -size << " # " << id << "(" << offset << ") on line " << yylineno << endl;
+            offset -= size;
         }
     }
 
@@ -153,7 +165,7 @@ void SymbolTableLevel::saveExpressions(std::vector<Expression*> expr_list)
     for(Expression *e : expr_list)
     {
         cpsl_log->out << "#argument " << e->toString() << endl;
-        e->store(t_offset, "$sp");
+        e->store(t_offset, "$sp", false);
         t_offset -= e->getSymbol()->type->nonconst_val()->size;
     }
 }
