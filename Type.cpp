@@ -176,7 +176,7 @@ auto Type::const_val(ValueType type) -> ValueType
 std::string Type::toString() const
 {
     if(vt == Function || vt == Procedure || vt == Array || vt == Record)
-        return toString(vt) + " " + name;
+        return toString(vt) + "_" + name;
 
     return toString(vt);
 }

@@ -222,6 +222,10 @@ void SymbolTable::initialize()
     chart = levels.front()->addType(Type::charId(), Type::Char, 4);
     intt = levels.front()->addType(Type::integerId(), Type::Integer, 4);
 
+    levels.front()->linkType(Type::uboolId(), boolt);
+    levels.front()->linkType(Type::ucharId(), chart);
+    levels.front()->linkType(Type::uintegerId(), intt);
+
     cchar = levels.front()->addType(Type::constCharId(), Type::Const_Char, 0, true, chart);
     cint = levels.front()->addType(Type::constIntegerId(), Type::Const_Integer, 0, true, intt);
     cbool = levels.front()->addType(Type::constBoolId(), Type::Const_Bool, 0, true, boolt);
@@ -468,7 +472,7 @@ void SymbolTable::_return(Expression *exp)
     if(exp)
     {
         if(bison_verbose)
-            cout << "comparing" << type->toString() << Type::toString(exp->symbol->type->vt) << " on line " << yylineno << endl;
+            cout << "comparing '" << type->toString() << "' to '" <<  Type::toString(exp->symbol->type->vt) << "' on line " << yylineno << endl;
         if(type != exp->type()->nonconst_val())
         {
             cerr << "Incorrect type on line " << yylineno << endl;
@@ -477,7 +481,7 @@ void SymbolTable::_return(Expression *exp)
         }
 
         exp->loadInTemp();
-        cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero" << endl;
+        cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero #Setting return argument on line " << yylineno << endl;
         exp->free();
     }
     cpsl_log->out << "\tj proc." << lbl_stack["proc_lbl"].top() << ".end" << endl;
@@ -643,12 +647,22 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
 
     Expression *size = new Expression(new Symbol(s->type->array_type->size));
     Expression *new_index = index->exec(new Expression(new Symbol(s->type->start_index)), Expression::Sub);
-    Expression *delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
+
+    Expression *delta_offset;
+    delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
     delta_offset->loadInTemp();
-    cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
+    if(index->symbol->global)
+    {
+        cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl; 
+    }
+    else
+    {
+        cpsl_log->out << "\tsub " << delta_offset->reg->name() << ", " << s->reg() << ", " << delta_offset->reg->name() << endl; 
+    }
+
 
     std::string newName = Symbol::GetLabel("_" + id);
-    Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg));
+    Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg, s->global));
     delta_offset->reg = NULL;
 
     return ret;
@@ -674,13 +688,10 @@ void SymbolTable::set(std::string lhs, std::string rhs)
 std::string SymbolTable::paramsString(Parameters params)
 {
     std::string ret;
-    std::string tstr = Type::toString(params.type->vt);
+    std::string tstr = params.type->toString();
     for(unsigned int i = 0; i < params.vars.size(); i++)
     {
-        if(i)
-            ret += ".";
-
-        ret += tstr;
+        ret += "." + tstr;
     }
 
     return ret;
@@ -689,14 +700,10 @@ std::string SymbolTable::paramsString(Parameters params)
 std::string SymbolTable::paramsString(std::vector<Expression*>& exprs)
 {
     std::string ret;
-    bool first = true;
     for(auto&e : exprs)
     {
-        if(!first)
-            ret += ".";
-        else
-            first = false;
-        std::string tstr = Type::toString(e->type()->nonconst_val()->vt);
+        ret += ".";
+        std::string tstr = e->type()->nonconst_val()->toString();
         ret += tstr;
     }
 

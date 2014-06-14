@@ -612,13 +612,41 @@ void Expression::store(int offset, std::string regstr)
             }
             break;
         case Type::Char:
+        case Type::Integer:
+        case Type::Const_Char:
+        case Type::Const_Integer:
+        case Type::Const_Bool:
             {
                 cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
             }
             break;
+        case Type::Array:
+            {
+                if(symbol->reg() == regstr)
+                {
+                    cerr << "Storing array to itself on line " << yylineno << endl;
+                    exit(1);
+                }
+
+                int count = symbol->type->size / symbol->type->array_type->size;
+                if(bison_verbose)
+                    cout  << "there are " << count << " items in array " << symbol->toString() << " on line " << yylineno << endl;
+
+                Register *dat = Register::FindRegister(Register::Temp);
+                for(int i = 0; i < count; i++)
+                {
+                    int i_offset = symbol->offset + i*symbol->type->array_type->size;
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << i_offset << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << -i_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
+                }
+                Register::ReleaseRegister(dat);
+                dat = NULL;
+            }
+            break;
         default:
             {
-                cpsl_log->out << "\tsw " << reg->name() << ", " << offset << "(" << regstr << ") #storing var (" << symbol->toString() << ") on line: " << yylineno << endl;
+                cerr << "Unsupported store type '" << symbol->toString() << "' on line " << yylineno << endl;
+                exit(1);
             }
     }
 

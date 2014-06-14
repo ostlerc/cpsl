@@ -45,6 +45,9 @@ class Type
         static std::string integerId() { return "integer"; }
         static std::string charId() { return "char"; }
         static std::string boolId() { return "boolean"; }
+        static std::string uintegerId() { return "INTEGER"; }
+        static std::string ucharId() { return "CHAR"; }
+        static std::string uboolId() { return "BOOLEAN"; }
 
         bool isConst();
         static bool isFoldable(ValueType type);

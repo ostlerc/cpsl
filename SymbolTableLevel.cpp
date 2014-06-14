@@ -38,7 +38,7 @@ void SymbolTableLevel::checkId(std::string id)
 
 Symbol* SymbolTableLevel::addProcedure(std::string id)
 {
-    variables[id] = new Symbol(id, -1, Type::typeProcedure());
+    variables[id] = new Symbol(id, -1, Type::typeProcedure(), true);
     //I am using this bool_value as a flag if the procedure has been declared or not
     variables[id]->bool_value = false;
     return variables[id];
@@ -46,7 +46,7 @@ Symbol* SymbolTableLevel::addProcedure(std::string id)
 
 Symbol* SymbolTableLevel::addFunction(std::string id, Type *returnType)
 {
-    variables[id] = new Symbol(id, -1, Type::typeFunction());
+    variables[id] = new Symbol(id, -1, Type::typeFunction(), true);
     //I am using this bool_value as a flag if the procedure has been declared or not
     variables[id]->bool_value = false;
     variables[id]->subType = returnType;
@@ -154,7 +154,7 @@ void SymbolTableLevel::saveExpressions(std::vector<Expression*> expr_list)
     {
         cpsl_log->out << "#argument " << e->toString() << endl;
         e->store(t_offset, "$sp");
-        t_offset -= 4;
+        t_offset -= e->getSymbol()->type->nonconst_val()->size;
     }
 }
 
@@ -177,4 +177,9 @@ Type* SymbolTableLevel::addType(std::string id, Type::ValueType type, int size, 
     checkId(id);
     types[id] = new Type(id, type, size, _const, nc);
     return types[id];
+}
+
+void SymbolTableLevel::linkType(std::string id, Type* t)
+{
+    types[id] = t;
 }
