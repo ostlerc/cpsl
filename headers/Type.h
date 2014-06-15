@@ -2,6 +2,9 @@
 #define __TYPE_H__
 
 #include <string>
+#include <map>
+
+class Symbol;
 
 class Type
 {
@@ -31,6 +34,7 @@ class Type
         Type *nonconst_counterpart;
         int start_index;
         Type *array_type;
+        std::map<std::string, Symbol*> symMap; //used for record types
 
         std::string toString() const;
 

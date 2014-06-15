@@ -30,6 +30,8 @@ extern "C" int yylex();
   ParamList *param_list;
   Type *typeexpr;
   SymList *sym_list;
+  RecordEntry* recexpr;
+  RecordList* rec_list;
 }
 
 /*%start  inputs*/
@@ -55,7 +57,9 @@ extern "C" int yylex();
 %type <expr_list> lValueList;
 %type <typeexpr> type;
 %type <typeexpr> arrayType;
-/*%type <typeexpr> recordType;*/
+%type <typeexpr> recordType;
+%type <recexpr> recordDecl;
+%type <rec_list> recordDecls;
 %type <paramptr> formalParameter;
 %type <param_list> formalParameters;
 %type <str_val> whileHead; /*return start label*/
@@ -164,7 +168,7 @@ statement: assignment
 assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $3); }
           ;
 lValue: IDENTSYM { $$ = new Expression(SymbolTable::instance()->findSymbol(*$1)); }
-      | IDENTSYM DOTOSYM IDENTSYM { $$ = NULL; }
+      | IDENTSYM DOTOSYM IDENTSYM { $$ = SymbolTable::instance()->recordMember(*$1, *$3); }
       | IDENTSYM LBRACKETOSYM expression RBRACKETOSYM { $$ = SymbolTable::instance()->arrayIndex(*$1, $3); }
       ;
 lValueList: lValue { $$ = new ExprList($1); }
@@ -222,20 +226,20 @@ assignStatement: IDENTSYM EQOSYM expression SEMIOSYM { SymbolTable::instance()->
 typeStatements: typeStatement
               | typeStatements typeStatement
               ;
-typeStatement: typeHead EQOSYM type SEMIOSYM
+typeStatement: typeHead EQOSYM type SEMIOSYM { SymbolTable::instance()->endType(); }
              ;
 typeHead: IDENTSYM { SymbolTable::instance()->startTypeDeclare(*$1); }
         ;
 type: IDENTSYM { $$ = SymbolTable::instance()->findType(*$1); }
-    | recordType { $$ = Type::typeRecord(); }
+    | recordType { $$ = $1; }
     | arrayType  { $$ = $1; }
     ;
-recordType: RECORDSYM recordDecls ENDSYM
+recordType: RECORDSYM recordDecls ENDSYM { $$ = SymbolTable::instance()->recordType($2->list()); }
           ;
-recordDecls: /*empty*/
-           | recordDecls recordDecl
+recordDecls: /*empty*/ { $$ = new RecordList; }
+           | recordDecls recordDecl { $$ = $1->add(*$2); }
            ;
-recordDecl: identList COLONOSYM type SEMIOSYM
+recordDecl: identList COLONOSYM type SEMIOSYM { $$ = new RecordEntry($1->list(), $3); }
           ;
 identList: IDENTSYM commaIdentifiers { $$ = $2->insert(*$1); }
          | IDENTSYM { $$ = new StrList(*$1); }

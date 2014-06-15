@@ -638,7 +638,7 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
                 for(int i = 0; i < count; i++)
                 {
                     int l_offset = offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = symbol->offset + -(i*symbol->type->array_type->size);
+                    int s_offset = symbol->offset + (i*symbol->type->array_type->size * (reg_global ? 1 : -1));
                     cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
                     cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
                 }
@@ -654,18 +654,18 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
     }
 }
 
-void Expression::assign(Symbol* s)
+void Expression::assign(Symbol* lhs_s)
 {
-    if(!Type::match(symbol->type->vt, s->type->vt))
+    if(!Type::match(symbol->type->vt, lhs_s->type->vt))
     {
         cerr << "Expression type mismatch: "
             << toString() << "-"
-            << s->toString() << " on line " << yylineno << endl;
+            << lhs_s->toString() << " on line " << yylineno << endl;
         exit(1);
     }
 
-    //s is actually the lhs
-    if(s->type->isConst())
+    //lhs_s is actually the lhs
+    if(lhs_s->type->isConst())
     {
         if(bison_verbose)
         {
@@ -675,34 +675,48 @@ void Expression::assign(Symbol* s)
         return;
     }
 
-    switch(s->type->vt)
+    switch(lhs_s->type->vt)
     {
         case Type::Bool:
         case Type::Char:
             {
                 loadInTemp();
-                cpsl_log->out << "\tsb " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cpsl_log->out << "\tsb " << reg->name() << ", " << lhs_s->offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
         case Type::Integer:
             {
                 loadInTemp();
-                cpsl_log->out << "\tsw " << reg->name() << ", " << s->offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
+                cpsl_log->out << "\tsw " << reg->name() << ", " << lhs_s->offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
+        /*case Type::Record:
+            {
+                if(symbol->type != lhs_s->type)
+                {
+                    cerr << "type mismatch. '" << toString() << "'-'" << lhs_s->toString() << "' on line " << yylineno << endl;
+                    exit(1);
+                }
+                for(int i = 0; i < count; i++)
+                {
+                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
+                    int s_offset = lhs_s->offset + (i*lhs_s->type->array_type->size * (lhs_s->global ? 1 : -1));
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                }
+            }
+            break;*/
         case Type::Array:
             {
-                if(symbol->type != s->type)
+                if(symbol->type != lhs_s->type)
                 {
-                    cerr << "type mismatch. '" 
-                        << toString() << "'-'"
-                        << s->toString() << "' on line " << yylineno << endl;
+                    cerr << "type mismatch. '" << toString() << "'-'" << lhs_s->toString() << "' on line " << yylineno << endl;
                     exit(1);
                 }
 
-                int count = s->type->size / s->type->array_type->size;
+                int count = lhs_s->type->size / lhs_s->type->array_type->size;
                 if(bison_verbose)
-                    cout  << "there are " << count << " items in array " << s->toString() << " on line " << yylineno << endl;
+                    cout  << "there are " << count << " items in array " << lhs_s->toString() << " on line " << yylineno << endl;
 
                 Register *dat = Register::FindRegister(Register::Temp);
 
@@ -714,9 +728,9 @@ void Expression::assign(Symbol* s)
                 for(int i = 0; i < count; i++)
                 {
                     int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = s->offset + (i*s->type->array_type->size * (s->global ? 1 : -1));
+                    int s_offset = lhs_s->offset + (i*lhs_s->type->array_type->size * (lhs_s->global ? 1 : -1));
                     cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << s->reg() << ") #Assign var (" << s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
                 }
                 Register::ReleaseRegister(dat);
                 dat = NULL;
@@ -724,7 +738,7 @@ void Expression::assign(Symbol* s)
             break;
         default:
             {
-                cerr << "attempting to assign unsupported type " << s->type->toString() << " on line " << yylineno << endl;
+                cerr << "attempting to assign unsupported type " << lhs_s->type->toString() << " on line " << yylineno << endl;
                 exit(1);
             }
     }
@@ -735,7 +749,7 @@ void Expression::assign(Symbol* s)
         symbol->rp = NULL;
     }
 
-    symbol = new Symbol(s);
+    symbol = new Symbol(lhs_s);
 
     if(bison_verbose)
         cout << "assigned" << toString() << endl;

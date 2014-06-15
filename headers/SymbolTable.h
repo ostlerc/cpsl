@@ -12,9 +12,11 @@
 class Symbol;
 class SymbolTableLevel;
 struct Parameters;
+struct RecordEntry;
 
 typedef ListWrapper<std::string> StrList;
 typedef ListWrapper<Parameters> ParamList;
+typedef ListWrapper<RecordEntry> RecordList;
 
 class SymbolTable
 {
@@ -33,6 +35,7 @@ class SymbolTable
     Type* findType(std::string, bool err = true);
 
     void startTypeDeclare(std::string name);
+    void endType();
     void declare_const(std::string name, Expression* e);
     void create_vars(Type *type, std::vector<std::string> var_list);
     void read(std::vector<Expression*> expr_list);
@@ -85,6 +88,8 @@ class SymbolTable
 
     Type* arrayType(Expression *lhs, Expression *rhs, Type *type);
     Expression* arrayIndex(std::string id, Expression *index);
+    Type* recordType(std::vector<RecordEntry>& entries);
+    Expression* recordMember(std::string rec, std::string member);
 
     std::string paramsString(Parameters params);
     std::string paramsString(std::vector<Expression*>& exprs);
@@ -116,6 +121,13 @@ struct Parameters
 {
     Parameters(std::vector<std::string> sl, Type *type) : vars(sl) , type(type) {}
     std::vector<std::string> vars;
+    Type *type;
+};
+
+struct RecordEntry
+{
+    RecordEntry(std::vector<std::string>& ids, Type* type) : ids(ids), type(type) {}
+    std::vector<std::string> ids;
     Type *type;
 };
 

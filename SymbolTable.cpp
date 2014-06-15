@@ -475,13 +475,15 @@ void SymbolTable::_return(Expression *exp)
             exit(1);
         }
 
-        if(exp->symbol->global && (exp->symbol->type->vt == Type::Array || exp->symbol->type->vt == Type::Record)) //handle returning global objects by copy
+        if(exp->symbol->global && exp->symbol->type->vt == Type::Array)
         {
-            cerr << "invalid global return argument. Return types must not be global to avoid pass by reference on line " << yylineno << endl;
-            exit(1);
+            Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), exp->symbol->type, false);
+            Expression *ret = new Expression(ret_sym);
+            exp = assign(ret, exp);
         }
 
         exp->loadInTemp();
+
         cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero #Setting return argument on line " << yylineno << endl;
         exp->free();
     }
@@ -599,6 +601,11 @@ void SymbolTable::startTypeDeclare(std::string name)
     lbl_stack["type_name"].push(name);
 }
 
+void SymbolTable::endType()
+{
+    lbl_stack["type_name"].pop();
+}
+
 Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
 {
     if(lhs->type()->vt != Type::Const_Integer)
@@ -622,27 +629,23 @@ Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
 
     Type* t = NULL;
     string id = lbl_stack["type_name"].top();
-    if(!id.empty())
-    {
-        t = findType(id, false);
-        if(t)
-        {
-            cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
-            exit(1);
-        }
-
-        if(bison_verbose)
-            cout << "adding type " << id << " on line " << yylineno << endl;
-        t = levels.front()->addType(id, Type::Array, (range+1)*type->size, false);
-        t->array_type = type->nonconst_val();
-        lbl_stack["type_name"].pop();
-        t->start_index = lhs->symbol->int_value;
-    }
-    else
+    if(id.empty())
     {
         cerr << "undefined array type on line " << yylineno << endl;
         exit(1);
     }
+    t = findType(id, false);
+    if(t)
+    {
+        cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
+        exit(1);
+    }
+
+    if(bison_verbose)
+        cout << "adding array type " << id << " on line " << yylineno << endl;
+    t = levels.front()->addType(id, Type::Array, (range+1)*type->size, false);
+    t->array_type = type->nonconst_val();
+    t->start_index = lhs->symbol->int_value;
 
     return type;
 }
@@ -655,28 +658,101 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
         exit(1);
     }
 
-    Symbol *s = findSymbol(id);
+    Symbol *ar_sym = findSymbol(id);
 
-    if(!s->type || !s->type->array_type)
+    if(!ar_sym->type || !ar_sym->type->array_type)
     {
         cerr << "uninitialized array on line " << yylineno << endl;
         exit(1);
     }
 
-    int array_size = s->global ? s->type->array_type->size : -s->type->array_type->size;
+    int array_size = ar_sym->global ? ar_sym->type->array_type->size : -ar_sym->type->array_type->size;
     Expression *size = new Expression(new Symbol(array_size));
-    Expression *new_index = index->exec(new Expression(new Symbol(s->type->start_index)), Expression::Sub);
+    Expression *new_index = index->exec(new Expression(new Symbol(ar_sym->type->start_index)), Expression::Sub);
 
     Expression *delta_offset;
-    delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(s->offset)), Expression::Add);
+    delta_offset = size->exec(new_index, Expression::Mul)->exec(new Expression(new Symbol(ar_sym->offset)), Expression::Add);
     delta_offset->loadInTemp();
-    cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << s->reg() << endl;
+    cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << ar_sym->reg() << endl;
 
     std::string newName = Symbol::GetLabel("_" + id);
-    Expression *ret = new Expression(new Symbol(newName, 0, s->type->array_type, delta_offset->reg, s->global));
+    Expression *ret = new Expression(new Symbol(newName, 0, ar_sym->type->array_type, delta_offset->reg, ar_sym->global));
     delta_offset->reg = NULL;
 
     return ret;
+}
+
+Type* SymbolTable::recordType(std::vector<RecordEntry>& entries)
+{
+    Type* t = NULL;
+    string id = lbl_stack["type_name"].top();
+    if(id.empty())
+    {
+        cerr << "undefined array type on line " << yylineno << endl;
+        exit(1);
+    }
+
+    t = findType(id, false);
+    if(t)
+    {
+        cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
+        exit(1);
+    }
+
+    //find size of structure
+    int size = 0;
+    for(auto& entry : entries)
+    {
+        size += entry.type->size * entry.ids.size();
+    }
+
+    if(size == 0)
+    {
+        cerr << "cannot have empty record type on line " << yylineno << endl;
+        exit(1);
+    }
+
+    if(bison_verbose)
+        cout << "#adding record type " << id << " on line " << yylineno << endl;
+
+    t = levels.front()->addType(id, Type::Record, size, false);
+
+    int cur_offset = 0;
+    map<string, Symbol*> symMap; //map ids to internal offsets
+    for(auto& entry : entries)
+    {
+        for(auto& mid : entry.ids)
+        {
+            auto v = symMap.find(mid);
+            if(v != symMap.end())
+            {
+                cerr << "duplicate record id found " << mid << " on line " << yylineno << endl;
+                exit(1);
+            }
+
+            std::string lbl = Symbol::GetLabel(id + "_" + mid);
+            symMap[mid] = new Symbol(lbl, cur_offset, entry.type, levels.back()->global());
+            cur_offset += entry.type->size;
+        }
+    }
+
+    t->symMap = symMap;
+
+    return t;
+}
+
+Expression* SymbolTable::recordMember(std::string rec, std::string member)
+{
+    Symbol *rec_sym = findSymbol(rec);
+
+    auto v = rec_sym->type->symMap.find(member);
+    if(v == rec_sym->type->symMap.end())
+    {
+        cerr << "unknown member variable " << member << " for " << rec_sym->type->toString() << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    return new Expression(v->second);
 }
 
 void SymbolTable::push(std::string reg)
