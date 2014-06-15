@@ -463,11 +463,11 @@ void SymbolTable::_return(Expression *exp)
         cout << "looking at you! " << exp->toString() << endl;
 
     Type *type = type_stack["return_type"].top();
-    /*if(exp->type() != type)
+    if(exp->type()->nonconst_val() != type->nonconst_val())
     {
         cerr << "Missing or extra type on line " << exp->toString() << "-" << type->toString() << yylineno << endl;
         exit(1);
-    }*/
+    }
 
     if(exp)
     {
