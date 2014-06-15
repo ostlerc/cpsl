@@ -564,7 +564,13 @@ void Expression::loadInTemp(bool force)
         case Type::Array: //load memory address (pointer) into register
             {
                 cpsl_log->out << "\tadd " << reg->name() << ", " << symbol->reg() << ", " << symbol->offset
-                    << "#Loading array symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
+                    << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
+            }
+            break;
+        case Type::Record:
+            {
+                cpsl_log->out << "\tadd " << reg->name() << ", " << symbol->reg() << ", $zero"
+                    << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
         case Type::Unknown:
@@ -664,7 +670,6 @@ void Expression::assign(Symbol* lhs_s)
         exit(1);
     }
 
-    //lhs_s is actually the lhs
     if(lhs_s->type->isConst())
     {
         if(bison_verbose)
@@ -690,22 +695,6 @@ void Expression::assign(Symbol* lhs_s)
                 cpsl_log->out << "\tsw " << reg->name() << ", " << lhs_s->offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") to (" << toString() << ") on line: " << yylineno << endl;
             }
             break;
-        /*case Type::Record:
-            {
-                if(symbol->type != lhs_s->type)
-                {
-                    cerr << "type mismatch. '" << toString() << "'-'" << lhs_s->toString() << "' on line " << yylineno << endl;
-                    exit(1);
-                }
-                for(int i = 0; i < count; i++)
-                {
-                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = lhs_s->offset + (i*lhs_s->type->array_type->size * (lhs_s->global ? 1 : -1));
-                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
-                }
-            }
-            break;*/
         case Type::Array:
             {
                 if(symbol->type != lhs_s->type)
@@ -714,9 +703,11 @@ void Expression::assign(Symbol* lhs_s)
                     exit(1);
                 }
 
-                int count = lhs_s->type->size / lhs_s->type->array_type->size;
-                if(bison_verbose)
+                if(Type::Array == lhs_s->type->vt && bison_verbose)
+                {
+                    int count = lhs_s->type->size / lhs_s->type->array_type->size;
                     cout  << "there are " << count << " items in array " << lhs_s->toString() << " on line " << yylineno << endl;
+                }
 
                 Register *dat = Register::FindRegister(Register::Temp);
 
@@ -725,11 +716,35 @@ void Expression::assign(Symbol* lhs_s)
                     cerr << "attempt reusing a register that was freed previously... " << dat->name() << endl;
                     exit(1);
                 }
-                for(int i = 0; i < count; i++)
+                //mem copy one word at a time
+                for(int i = 0; i < lhs_s->type->size / 4; i++)
                 {
-                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = lhs_s->offset + (i*lhs_s->type->array_type->size * (lhs_s->global ? 1 : -1));
+                    int l_offset = symbol->offset + (i* (symbol->global ? 4 : -4));
+                    int s_offset = lhs_s->offset + (i* (lhs_s->global ? 4 : -4));
                     cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                }
+                Register::ReleaseRegister(dat);
+                dat = NULL;
+            }
+            break;
+        case Type::Record:
+            {
+                loadInTemp();
+                if(symbol->type != lhs_s->type)
+                {
+                    cerr << "type mismatch. '" << toString() << "'-'" << lhs_s->toString() << "' on line " << yylineno << endl;
+                    exit(1);
+                }
+
+                Register *dat = Register::FindRegister(Register::Temp);
+
+                //mem copy one word at a time
+                for(int i = 0; i < lhs_s->type->size / 4; i++)
+                {
+                    int l_offset = symbol->offset + (i* (symbol->global ? 4 : -4));
+                    int s_offset = lhs_s->offset + (i* (lhs_s->global ? 4 : -4));
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << reg->name() << ")" << endl;
                     cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
                 }
                 Register::ReleaseRegister(dat);

@@ -167,7 +167,9 @@ void SymbolTable::create_vars(Type *type, vector<std::string> var_list)
 {
     for(int i = var_list.size()-1; i >= 0; i--)
     {
-        levels.back()->addVariable(var_list[i], type);
+        Symbol *s = levels.back()->addVariable(var_list[i], type);
+
+        setupSymbol(s);
     }
 }
 
@@ -551,7 +553,7 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
-    if(func_sym->subType->vt == Type::Array)
+    if(func_sym->subType->vt == Type::Array || func_sym->subType->vt == Type::Record)
     {
         if(bison_verbose)
             cpsl_log->out << "#HERE!!! :D" << endl;
@@ -718,35 +720,64 @@ Type* SymbolTable::recordType(std::vector<RecordEntry>& entries)
     t = levels.front()->addType(id, Type::Record, size, false);
 
     int cur_offset = 0;
-    map<string, Symbol*> symMap; //map ids to internal offsets
+    map<string, Symbol*> typeMap; //map ids to internal offsets
     for(auto& entry : entries)
     {
         for(auto& mid : entry.ids)
         {
-            auto v = symMap.find(mid);
-            if(v != symMap.end())
+            auto v = typeMap.find(mid);
+            if(v != typeMap.end())
             {
                 cerr << "duplicate record id found " << mid << " on line " << yylineno << endl;
                 exit(1);
             }
 
-            std::string lbl = Symbol::GetLabel(id + "_" + mid);
-            symMap[mid] = new Symbol(lbl, cur_offset, entry.type, levels.back()->global());
+            std::string lbl = id + "_" + mid;
+            typeMap[mid] = new Symbol(lbl, cur_offset, entry.type, levels.back()->global());
             cur_offset += entry.type->size;
         }
     }
 
-    t->symMap = symMap;
+    t->typeMap = typeMap;
 
     return t;
+}
+
+void SymbolTable::setupSymbol(Symbol* s)
+{
+    if(s->type->vt == Type::Record)
+    {
+        if(bison_verbose)
+            cout << "setting up " << s->toString() << " on line " << yylineno << endl;
+        for(auto& sym : s->type->typeMap)
+        {
+            string lbl = s->name + "_" + sym.second->name;
+            Symbol *sub_sym = new Symbol(
+                    lbl,
+                    sym.second->offset + s->offset,
+                    sym.second->type,
+                    s->global);
+
+            s->symMap[sym.first] = sub_sym;
+            if(bison_verbose)
+                cout << "created symbol " << sub_sym->name << " offset=" << sub_sym->offset << " size=" << sub_sym->type->size << " " << sub_sym->type->toString() << " on line " << yylineno << endl;
+            setupSymbol(sub_sym);
+        }
+    }
 }
 
 Expression* SymbolTable::recordMember(std::string rec, std::string member)
 {
     Symbol *rec_sym = findSymbol(rec);
 
-    auto v = rec_sym->type->symMap.find(member);
-    if(v == rec_sym->type->symMap.end())
+    if(rec_sym->type->vt != Type::Record)
+    {
+        cerr << "cannot access member variables with type " << rec_sym->type->toString() << " on line " << yylineno << endl;
+        exit(1);
+    }
+
+    auto v = rec_sym->symMap.find(member);
+    if(v == rec_sym->symMap.end())
     {
         cerr << "unknown member variable " << member << " for " << rec_sym->type->toString() << " on line " << yylineno << endl;
         exit(1);

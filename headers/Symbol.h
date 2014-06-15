@@ -68,6 +68,7 @@ class Symbol
         Type *subType;
         std::string regPointer;
         Register *rp;
+        std::map<std::string, Symbol*> symMap; //used for record types
 };
 
 typedef ListWrapper<Symbol*> SymList;

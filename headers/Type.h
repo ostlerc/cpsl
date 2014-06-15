@@ -34,7 +34,7 @@ class Type
         Type *nonconst_counterpart;
         int start_index;
         Type *array_type;
-        std::map<std::string, Symbol*> symMap; //used for record types
+        std::map<std::string, Symbol*> typeMap; //used for record types
 
         std::string toString() const;
 
