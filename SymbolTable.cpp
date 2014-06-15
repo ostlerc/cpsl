@@ -535,27 +535,29 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
 
 Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_list)
 {
-    Symbol *s = procBoiler(func, expr_list, Type::typeFunction());
+    Symbol *func_sym = procBoiler(func, expr_list, Type::typeFunction());
 
     if(bison_verbose)
-        cout << "return type for function " << func << " is " << Type::toString(s->subType->vt) << " on line " << yylineno << endl;
+        cout << "return type for function " << func << " is " << Type::toString(func_sym->subType->vt) << " on line " << yylineno << endl;
     //Assign return value to expression
-    Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), s->subType, false);
+    Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), func_sym->subType, false);
 
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
-    if(s->subType->vt == Type::Array)
+    if(func_sym->subType->vt == Type::Array)
     {
         cpsl_log->out << "#HERE!!! :D" << endl;
         ret_sym->setReg(tmp->name());
         ret_sym->rp = tmp;
-        ret->store(-1, "$fp", false);
+        ret->store(0, "$fp", false);
+        ret_sym->setReg("$fp");
+        ret->free();
     }
     else
     {
         ret->reg = tmp;
-        ret->store(-1, "$fp", false);
+        ret->store(-1, "$fp");
     }
     return ret;
 }

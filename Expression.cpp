@@ -637,8 +637,8 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
                 Register *dat = Register::FindRegister(Register::Temp);
                 for(int i = 0; i < count; i++)
                 {
-                    int l_offset = symbol->offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = symbol->offset + (i*symbol->type->array_type->size * (reg_global ? 1 : -1));
+                    int l_offset = offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
+                    int s_offset = symbol->offset + (i*symbol->type->array_type->size * -1);
                     cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
                     cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
                 }
@@ -730,7 +730,10 @@ void Expression::assign(Symbol* s)
     }
 
     if(symbol->rp)
+    {
         Register::ReleaseRegister(symbol->rp);
+        symbol->rp = NULL;
+    }
 
     symbol = new Symbol(s);
 

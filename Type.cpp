@@ -142,7 +142,7 @@ Type* Type::nonconst_val()
 
     if(!nonconst_counterpart)
     {
-        cerr << "attempting to get nonconst_counterpart on line " << yylineno << endl;
+        cerr << "attempting to get nonconst_counterpart for " << toString() << " on line " << yylineno << endl;
         exit(1);
     }
 
