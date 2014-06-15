@@ -10,6 +10,7 @@
 using namespace std;
 
 extern int yylineno;
+extern int bison_verbose;
 extern Log* cpsl_log;
 
 void SymbolTableLevel::checkId(std::string id)
@@ -164,7 +165,8 @@ void SymbolTableLevel::saveExpressions(std::vector<Expression*> expr_list)
     int t_offset = 0;
     for(Expression *e : expr_list)
     {
-        cpsl_log->out << "#argument " << e->toString() << endl;
+        if(bison_verbose)
+            cpsl_log->out << "#argument " << e->toString() << endl;
         e->store(t_offset, "$sp", false);
         t_offset -= e->getSymbol()->type->nonconst_val()->size;
     }

@@ -442,7 +442,8 @@ void SymbolTable::procedureParams(string id, std::vector<Parameters> params, Typ
         cout << " #declaring procedure on line " << yylineno;
     cpsl_log->out << endl;
 
-    cpsl_log->out << "#callee procpsl_logue" << endl;
+    if(bison_verbose)
+        cpsl_log->out << "#callee procpsl_logue" << endl;
     levels.back()->loadParams(params);
 }
 
@@ -476,6 +477,12 @@ void SymbolTable::_return(Expression *exp)
         {
             cerr << "Incorrect type on line " << yylineno << endl;
             cerr << "expecting type " << Type::toString(exp->symbol->type->vt) << endl;
+            exit(1);
+        }
+
+        if(exp->symbol->global && (exp->symbol->type->vt == Type::Array || exp->symbol->type->vt == Type::Record)) //handle returning global objects by copy
+        {
+            cerr << "invalid global return argument. Return types must not be global to avoid pass by reference on line " << yylineno << endl;
             exit(1);
         }
 
@@ -516,7 +523,8 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
         exit(1);
     }
 
-    cpsl_log->out << "#caller procpsl_logue" << endl;
+    if(bison_verbose)
+        cpsl_log->out << "#caller procpsl_logue" << endl;
     push("$ra");
     push("$fp");
     Register *tmp = Register::FindRegister(Register::Temp);
@@ -525,7 +533,8 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     set("$fp",tmp->name());
     Register::ReleaseRegister(tmp);
     cpsl_log->out << "\tjal proc." << lbl << " # calling procedure " << proc << " on line " << yylineno << endl;
-    cpsl_log->out << "#caller epicpsl_logue" << endl;
+    if(bison_verbose)
+        cpsl_log->out << "#caller epicpsl_logue" << endl;
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
@@ -547,7 +556,8 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     set(tmp->name(), "$v0");
     if(func_sym->subType->vt == Type::Array)
     {
-        cpsl_log->out << "#HERE!!! :D" << endl;
+        if(bison_verbose)
+            cpsl_log->out << "#HERE!!! :D" << endl;
         ret_sym->setReg(tmp->name());
         ret_sym->rp = tmp;
         ret->store(0, "$fp", false);
