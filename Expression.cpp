@@ -492,9 +492,6 @@ void Expression::print()
                 }
             }
             break;
-        case Type::Array:
-        case Type::Record:
-            break;
         default:
             {
                 cerr << "Unimplemented print type " << toString() << " on line: " << yylineno << endl;
