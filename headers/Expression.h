@@ -64,7 +64,7 @@ class Expression
         void store(int offset = -1, std::string reg = "", bool reg_global = true);
         Type *type();
         Symbol *getSymbol() { return symbol; }
-        std::string regStr() { return reg->name(); }
+        std::string regStr() { return reg ? "" : reg->name(); }
 
     private:
 

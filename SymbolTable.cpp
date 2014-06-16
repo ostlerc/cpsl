@@ -205,7 +205,10 @@ void SymbolTable::read(vector<Expression*> expr_list)
     }
 
     for(unsigned int i = 0; i < expr_list.size(); i++)
+    {
         expr_list[i]->symbol->read();
+        expr_list[i]->free();
+    }
 
     checkRegisters();
 }
@@ -691,7 +694,6 @@ Expression* SymbolTable::arrayIndex(Expression *parent, Expression *index)
 
     std::string newName = Symbol::GetLabel("_" + ar_sym->name);
     Symbol *new_sym = new Symbol(newName, 0, ar_sym->type->array_type, delta_offset->reg, ar_sym->global);
-    setupSymbol(new_sym);
     Expression *ret = new Expression(new_sym);
     delta_offset->reg = NULL;
 
@@ -757,29 +759,6 @@ Type* SymbolTable::recordType(std::vector<RecordEntry>& entries)
     return t;
 }
 
-void SymbolTable::setupSymbol(Symbol* s)
-{
-    if(s->type->vt == Type::Record)
-    {
-        if(bison_verbose)
-            cout << "setting up " << s->toString() << " on line " << yylineno << endl;
-        for(auto& sym : s->type->typeMap)
-        {
-            string lbl = Symbol::GetLabel(s->name + "_" + sym.second->name);
-            Symbol *sub_sym = new Symbol(
-                    lbl,
-                    s->global ? sym.second->offset + s->offset : s->offset - sym.second->offset,
-                    sym.second->type,
-                    s->global);
-
-            s->symMap[sym.first] = sub_sym;
-            if(bison_verbose)
-                cout << "created symbol " << sub_sym->name << " offset=" << sub_sym->offset << " size=" << sub_sym->type->size << " " << sub_sym->type->toString() << " on line " << yylineno << endl;
-            setupSymbol(sub_sym);
-        }
-    }
-}
-
 Expression* SymbolTable::recordMember(Expression* rec, std::string member)
 {
     Symbol *rec_sym = rec->symbol;
@@ -790,16 +769,25 @@ Expression* SymbolTable::recordMember(Expression* rec, std::string member)
         exit(1);
     }
 
-    auto v = rec_sym->symMap.find(member);
-    if(v == rec_sym->symMap.end())
+    auto v = rec_sym->type->typeMap.find(member);
+    if(v == rec_sym->type->typeMap.end())
     {
         cerr << "unknown member variable " << member << " for " << rec_sym->type->toString() << " on line " << yylineno << endl;
         exit(1);
     }
 
+    if(bison_verbose)
+        cout << "looking up record member for " << rec->toString() << " on line " << yylineno << endl;
+    rec->loadInTemp();
+
+    Symbol *memberSym = new Symbol(v->second);
+    memberSym->rp = rec->reg;
+    memberSym->setReg(memberSym->rp->name());
+    memberSym->offset *= rec->symbol->global ? 1 : -1;
+    rec->reg = NULL;
     rec->free();
 
-    return new Expression(v->second);
+    return new Expression(memberSym);
 }
 
 void SymbolTable::push(std::string reg)

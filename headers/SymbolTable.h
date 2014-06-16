@@ -90,7 +90,7 @@ class SymbolTable
     Expression* arrayIndex(Expression *parent, Expression *index);
     Type* recordType(std::vector<RecordEntry>& entries);
     Expression* recordMember(Expression* rec, std::string member);
-    void setupSymbol(Symbol* s);
+    void setupSymbol(Symbol* s, Expression* p);
 
     std::string paramsString(Parameters params);
     std::string paramsString(std::vector<Expression*>& exprs);

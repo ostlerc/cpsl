@@ -12,7 +12,7 @@
 #include "Log.h"
 #include "Symbol.h"
 
-int bison_verbose = 0;
+int bison_verbose = 1;
 int yyerror(const char* s);
 extern int yylineno;
 extern Log* log;

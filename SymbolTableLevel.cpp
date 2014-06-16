@@ -155,8 +155,6 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
     if(named)
         variables[id] = sym;
 
-    SymbolTable::instance()->setupSymbol(sym);
-
     return sym;
 }
 
