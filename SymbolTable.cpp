@@ -562,19 +562,10 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
 
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
-    set(tmp->name(), "$v0");
-    if(func_sym->subType->vt == Type::Array)
+    if(func_sym->subType->vt == Type::Array || func_sym->subType->vt == Type::Record)
     {
         if(bison_verbose)
             cpsl_log->out << "#callfunc array on line " << yylineno << endl;
-        ret->reg = tmp;
-        set(ret->reg->name(), "$v0");
-        ret->store(-1, "", false);
-    }
-    else if(func_sym->subType->vt == Type::Record)
-    {
-        if(bison_verbose)
-            cpsl_log->out << "#callfunc record on line " << yylineno << endl;
         ret->reg = tmp;
         set(ret->reg->name(), "$v0");
         ret->store(-1, "", false);

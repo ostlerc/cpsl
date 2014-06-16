@@ -630,24 +630,8 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
                 free();
             }
             break;
-        case Type::Array:
-            {
-                int count = symbol->type->size / symbol->type->array_type->size;
-                if(bison_verbose)
-                    cout  << "there are " << count << " items in array " << symbol->toString() << " on line " << yylineno << endl;
-
-                Register *dat = Register::FindRegister(Register::Temp);
-                for(int i = 0; i < count; i++)
-                {
-                    int l_offset = offset + (i*symbol->type->array_type->size * (symbol->global ? 1 : -1));
-                    int s_offset = symbol->offset + (i*symbol->type->array_type->size * (reg_global ? 1 : -1));
-                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << symbol->reg() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") index " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
-                }
-                Register::ReleaseRegister(dat);
-                dat = NULL;
-            }
         case Type::Record:
+        case Type::Array:
             {
                 int size = symbol->type->size;
                 if(bison_verbose)
