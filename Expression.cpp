@@ -86,6 +86,7 @@ Expression* Expression::exec(Expression* e, Operation op)
         case Type::Const_Bool:
             rhs_v = e->symbol->bool_value;
         case Type::Const_Char:
+        case Type::Char:
             rhs_v = e->symbol->char_value;
             break;
         case Type::Unknown:

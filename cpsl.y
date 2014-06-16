@@ -167,9 +167,9 @@ statement: assignment
          ;
 assignment: lValue ASSIGNOSYM expression { SymbolTable::instance()->assign($1, $3); }
           ;
-lValue: IDENTSYM { $$ = new Expression(SymbolTable::instance()->findSymbol(*$1)); }
-      | IDENTSYM DOTOSYM IDENTSYM { $$ = SymbolTable::instance()->recordMember(*$1, *$3); }
-      | IDENTSYM LBRACKETOSYM expression RBRACKETOSYM { $$ = SymbolTable::instance()->arrayIndex(*$1, $3); }
+lValue: lValue DOTOSYM IDENTSYM { $$ = SymbolTable::instance()->recordMember($1, *$3); }
+      | lValue LBRACKETOSYM expression RBRACKETOSYM { $$ = SymbolTable::instance()->arrayIndex($1, $3); }
+      | IDENTSYM { $$ = new Expression(SymbolTable::instance()->findSymbol(*$1)); }
       ;
 lValueList: lValue { $$ = new ExprList($1); }
           | lValueList COMMAOSYM lValue { $$ = $1->add($3); }

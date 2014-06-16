@@ -312,6 +312,7 @@ void SymbolTable::whileStatement(std::string startLbl, std::string endLbl)
 string* SymbolTable::ifExpr(Expression* e)
 {
     string *endLbl = new string(Symbol::GetLabel("IfE"));
+    e->loadInTemp();
     cpsl_log->out << "\tbeq " << e->reg->name() << ", $zero, " << *endLbl << " # exit 'if' branch expr: " << e->toString() << " on line " << yylineno << endl;
     e->free();
 
@@ -367,8 +368,8 @@ string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Opera
     Expression *lt = rhs->exec(lhs, op == Expression::Succ ? Expression::Gte : Expression::Lte);
     cpsl_log->out << "\tbeq " << lt->reg->name() << ", $zero " << *lbl << ".stop # line " << yylineno << endl;
     lbl_stack["stop"].push(*lbl);
-    lt->free();
 
+    lt->free();
     lhs->free();
     rhs->free();
     t->free();
@@ -632,17 +633,26 @@ Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
     }
 
     Type* t = NULL;
-    string id = lbl_stack["type_name"].top();
-    if(id.empty())
+    string id;
+    //defining a type
+    if(!lbl_stack["type_name"].empty())
     {
-        cerr << "undefined array type on line " << yylineno << endl;
-        exit(1);
+        id = lbl_stack["type_name"].top();
+        if(id.empty())
+        {
+            cerr << "undefined array type on line " << yylineno << endl;
+            exit(1);
+        }
+        t = findType(id, false);
+        if(t)
+        {
+            cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
+            exit(1);
+        }
     }
-    t = findType(id, false);
-    if(t)
+    else
     {
-        cerr << "Type " << t->toString() << " already defined on line " << yylineno << endl;
-        exit(1);
+        id = Symbol::GetLabel("array");
     }
 
     if(bison_verbose)
@@ -651,10 +661,10 @@ Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
     t->array_type = type->nonconst_val();
     t->start_index = lhs->symbol->int_value;
 
-    return type;
+    return t;
 }
 
-Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
+Expression* SymbolTable::arrayIndex(Expression *parent, Expression *index)
 {
     if(index->type()->nonconst_val()->vt != Type::Integer)
     {
@@ -662,7 +672,7 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
         exit(1);
     }
 
-    Symbol *ar_sym = findSymbol(id);
+    Symbol *ar_sym = parent->symbol;
 
     if(!ar_sym->type || !ar_sym->type->array_type)
     {
@@ -679,8 +689,10 @@ Expression* SymbolTable::arrayIndex(std::string id, Expression *index)
     delta_offset->loadInTemp();
     cpsl_log->out << "\tadd " << delta_offset->reg->name() << ", " << delta_offset->reg->name() << ", " << ar_sym->reg() << endl;
 
-    std::string newName = Symbol::GetLabel("_" + id);
-    Expression *ret = new Expression(new Symbol(newName, 0, ar_sym->type->array_type, delta_offset->reg, ar_sym->global));
+    std::string newName = Symbol::GetLabel("_" + ar_sym->name);
+    Symbol *new_sym = new Symbol(newName, 0, ar_sym->type->array_type, delta_offset->reg, ar_sym->global);
+    setupSymbol(new_sym);
+    Expression *ret = new Expression(new_sym);
     delta_offset->reg = NULL;
 
     return ret;
@@ -768,9 +780,9 @@ void SymbolTable::setupSymbol(Symbol* s)
     }
 }
 
-Expression* SymbolTable::recordMember(std::string rec, std::string member)
+Expression* SymbolTable::recordMember(Expression* rec, std::string member)
 {
-    Symbol *rec_sym = findSymbol(rec);
+    Symbol *rec_sym = rec->symbol;
 
     if(rec_sym->type->vt != Type::Record)
     {
@@ -784,6 +796,8 @@ Expression* SymbolTable::recordMember(std::string rec, std::string member)
         cerr << "unknown member variable " << member << " for " << rec_sym->type->toString() << " on line " << yylineno << endl;
         exit(1);
     }
+
+    rec->free();
 
     return new Expression(v->second);
 }
