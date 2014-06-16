@@ -141,7 +141,7 @@ int Register::reservedRegisters()
 
         if(temp_registers[i]->allocated)
         {
-            if(bison_verbose)
+            //if(bison_verbose)
                 cerr << "temp register " << i << " not released" << endl;
             ret++;
         }

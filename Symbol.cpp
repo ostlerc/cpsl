@@ -35,6 +35,7 @@ Symbol::Symbol(std::string& name, int offset, Type *type, bool global)
     , offset(offset)
     , global(global)
     , type(type)
+    , subType(NULL)
     , regPointer( global ? "$gp" : "$fp" )
     , rp(NULL)
 {
@@ -50,6 +51,7 @@ Symbol::Symbol(std::string& name, int offset, Type *type, Register* _reg, bool g
     , offset(offset)
     , global(global)
     , type(type)
+    , subType(NULL)
     , regPointer(_reg->name())
     , rp(_reg)
 {

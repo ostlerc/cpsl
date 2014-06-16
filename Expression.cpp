@@ -569,7 +569,7 @@ void Expression::loadInTemp(bool force)
             break;
         case Type::Record:
             {
-                cpsl_log->out << "\tadd " << reg->name() << ", " << symbol->reg() << ", $zero"
+                cpsl_log->out << "\tadd " << reg->name() << ", " << symbol->reg() << ", " << symbol->offset
                     << "#Loading symbol " << symbol->name << " into reg " << reg->name() << " on line: " << yylineno << endl;
             }
             break;
@@ -597,12 +597,17 @@ void Expression::free()
     {
         Register::ReleaseRegister(symbol->rp);
         symbol->rp = NULL;
+        if(symbol->global)
+            symbol->setReg("$gp");
+        else
+            symbol->setReg("$fp");
     }
 }
 
 void Expression::store(int offset, std::string regstr, bool reg_global)
 {
-    if(offset == -1)
+    bool offsetDefault = offset == -1;
+    if(offsetDefault)
         offset = symbol->offset;
 
     if(regstr.empty())
@@ -630,12 +635,6 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
             break;
         case Type::Array:
             {
-                if(symbol->reg() == regstr)
-                {
-                    cerr << "Storing array to itself on line " << yylineno << endl;
-                    exit(1);
-                }
-
                 int count = symbol->type->size / symbol->type->array_type->size;
                 if(bison_verbose)
                     cout  << "there are " << count << " items in array " << symbol->toString() << " on line " << yylineno << endl;
@@ -650,6 +649,29 @@ void Expression::store(int offset, std::string regstr, bool reg_global)
                 }
                 Register::ReleaseRegister(dat);
                 dat = NULL;
+            }
+        case Type::Record:
+            {
+                int size = symbol->type->size;
+                if(bison_verbose)
+                    cout  << "mem copy size " << size << " in block for symbol " << symbol->toString() << " on line " << yylineno << endl;
+
+                loadInTemp();
+                Register *dat = Register::FindRegister(Register::Temp);
+                for(int i = 0; i < size / 4; i++)
+                {
+                    int l_offset = i*(symbol->global ? 4 : -4);
+                    int s_offset = offset + i*(reg_global ? 4 : -4);
+
+                    if(!offsetDefault)
+                        s_offset -= offset;
+
+                    cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << reg->name() << ")" << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << regstr << ") #Store var (" << symbol->toString() << ") word " << i << " to reg (" << regstr << ") on line: " << yylineno << endl;
+                }
+                Register::ReleaseRegister(dat);
+                dat = NULL;
+                free();
             }
             break;
         default:
@@ -730,25 +752,30 @@ void Expression::assign(Symbol* lhs_s)
             break;
         case Type::Record:
             {
-                loadInTemp();
                 if(symbol->type != lhs_s->type)
                 {
                     cerr << "type mismatch. '" << toString() << "'-'" << lhs_s->toString() << "' on line " << yylineno << endl;
                     exit(1);
                 }
 
+                Expression *lhs = new Expression(lhs_s);
+
+                loadInTemp();
+                lhs->loadInTemp();
+
                 Register *dat = Register::FindRegister(Register::Temp);
 
                 //mem copy one word at a time
                 for(int i = 0; i < lhs_s->type->size / 4; i++)
                 {
-                    int l_offset = symbol->offset + (i* (symbol->global ? 4 : -4));
-                    int s_offset = lhs_s->offset + (i* (lhs_s->global ? 4 : -4));
+                    int l_offset = i * (symbol->global ? 4 : -4);
+                    int s_offset = i * (lhs_s->global ? 4 : -4);
                     cpsl_log->out << "\tlw " << dat->name() << ", " << l_offset << "(" << reg->name() << ")" << endl;
-                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs_s->reg() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
+                    cpsl_log->out << "\tsw " << dat->name() << ", " << s_offset << "(" << lhs->reg->name() << ") #Assign var (" << lhs_s->toString() << ") index " << i << " to (" << toString() << ") on line: " << yylineno << endl;
                 }
                 Register::ReleaseRegister(dat);
                 dat = NULL;
+                lhs->free();
             }
             break;
         default:

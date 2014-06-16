@@ -24,7 +24,6 @@ SymbolTable::SymbolTable()
     , chart(NULL)
 {
     levels.emplace_back(new SymbolTableLevel(true));
-    initialize();
 }
 
 SymbolTable::~SymbolTable()
@@ -34,7 +33,10 @@ SymbolTable* SymbolTable::instance()
 {
     static SymbolTable* st = NULL;
     if(!st)
+    {
         st = new SymbolTable;
+        st->initialize();
+    }
 
     return st;
 }
@@ -167,9 +169,7 @@ void SymbolTable::create_vars(Type *type, vector<std::string> var_list)
 {
     for(int i = var_list.size()-1; i >= 0; i--)
     {
-        Symbol *s = levels.back()->addVariable(var_list[i], type);
-
-        setupSymbol(s);
+        levels.back()->addVariable(var_list[i], type);
     }
 }
 
@@ -477,7 +477,7 @@ void SymbolTable::_return(Expression *exp)
             exit(1);
         }
 
-        if(exp->symbol->global && exp->symbol->type->vt == Type::Array)
+        if(exp->symbol->global && (exp->symbol->type->vt == Type::Array || exp->symbol->type->vt == Type::Record))
         {
             Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), exp->symbol->type, false);
             Expression *ret = new Expression(ret_sym);
@@ -511,7 +511,7 @@ void SymbolTable::callProc(std::string proc, vector<Expression*> expr_list)
 Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list, Type* fType)
 {
     std::string lbl = procId(proc, expr_list);
-    Symbol *s = findSymbol(lbl, true);
+    Symbol *s = findSymbol(lbl);
 
     if(s->type->vt != fType->vt)
     {
@@ -553,15 +553,17 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     Expression *ret = new Expression(ret_sym);
     Register *tmp = Register::FindRegister(Register::Temp);
     set(tmp->name(), "$v0");
-    if(func_sym->subType->vt == Type::Array || func_sym->subType->vt == Type::Record)
+    if(func_sym->subType->vt == Type::Array)
     {
-        if(bison_verbose)
-            cpsl_log->out << "#HERE!!! :D" << endl;
-        ret_sym->setReg(tmp->name());
-        ret_sym->rp = tmp;
-        ret->store(0, "$fp", false);
-        ret_sym->setReg("$fp");
-        ret->free();
+        ret->reg = tmp;
+        set(ret->reg->name(), "$v0");
+        ret->store(-1, "", false);
+    }
+    else if(func_sym->subType->vt == Type::Record)
+    {
+        ret->reg = tmp;
+        set(ret->reg->name(), "$v0");
+        ret->store(-1, "", false);
     }
     else
     {
@@ -751,10 +753,10 @@ void SymbolTable::setupSymbol(Symbol* s)
             cout << "setting up " << s->toString() << " on line " << yylineno << endl;
         for(auto& sym : s->type->typeMap)
         {
-            string lbl = s->name + "_" + sym.second->name;
+            string lbl = Symbol::GetLabel(s->name + "_" + sym.second->name);
             Symbol *sub_sym = new Symbol(
                     lbl,
-                    sym.second->offset + s->offset,
+                    s->global ? sym.second->offset + s->offset : s->offset - sym.second->offset,
                     sym.second->type,
                     s->global);
 

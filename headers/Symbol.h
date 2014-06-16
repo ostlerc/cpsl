@@ -18,6 +18,7 @@ class Symbol
             : name(GetLabel("cstr"))
             , str_value(str_value)
             , global(true)
+            , subType(NULL)
             , rp(NULL)
         { type = SymbolTable::instance()->findType(Type::constStringId()); }
 
@@ -25,6 +26,7 @@ class Symbol
             : name(GetLabel("cint"))
             , int_value(v)
             , global(true)
+            , subType(NULL)
             , rp(NULL)
         { type = SymbolTable::instance()->findType(Type::constIntegerId()); }
 
@@ -33,6 +35,7 @@ class Symbol
             , str_value(s)
             , char_value(c)
             , global(true)
+            , subType(NULL)
             , rp(NULL)
         { type = SymbolTable::instance()->findType(Type::constCharId()); }
 
@@ -40,6 +43,7 @@ class Symbol
             : name(name)
             , bool_value(b)
             , global(true)
+            , subType(NULL)
             , rp(NULL)
         { type = SymbolTable::instance()->findType(Type::constBoolId()); }
 

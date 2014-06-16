@@ -136,12 +136,10 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
     checkId(id);
 
     Symbol *sym = new Symbol(id, offset, type, globalScope);
-
     int size = type->size;
 
     if(!type->isConst())
     {
-
         if(globalScope && named)
         {
             cpsl_log->out << "\t.space " << size << " # " << id << "(" << offset << ")" << endl;
@@ -156,6 +154,8 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
 
     if(named)
         variables[id] = sym;
+
+    SymbolTable::instance()->setupSymbol(sym);
 
     return sym;
 }
