@@ -485,6 +485,8 @@ void SymbolTable::_return(Expression *exp)
         {
             Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), exp->symbol->type, false);
             Expression *ret = new Expression(ret_sym);
+            if(bison_verbose)
+                cpsl_log->out << " #assigning variable after return on line " << yylineno << endl;
             exp = assign(ret, exp);
         }
 
@@ -528,6 +530,8 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
 
     if(bison_verbose)
         cpsl_log->out << "#caller procpsl_logue" << endl;
+    for(auto& reg : Register::allocatedRegisters())
+            push(reg);
     push("$ra");
     push("$fp");
     Register *tmp = Register::FindRegister(Register::Temp);
@@ -541,6 +545,8 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
+    for(auto& reg : Register::allocatedRegisters())
+        pop(reg);
 
     return s;
 }
@@ -559,18 +565,25 @@ Expression* SymbolTable::callFunc(std::string func, vector<Expression*> expr_lis
     set(tmp->name(), "$v0");
     if(func_sym->subType->vt == Type::Array)
     {
+        if(bison_verbose)
+            cpsl_log->out << "#callfunc array on line " << yylineno << endl;
         ret->reg = tmp;
         set(ret->reg->name(), "$v0");
         ret->store(-1, "", false);
     }
     else if(func_sym->subType->vt == Type::Record)
     {
+        if(bison_verbose)
+            cpsl_log->out << "#callfunc record on line " << yylineno << endl;
         ret->reg = tmp;
         set(ret->reg->name(), "$v0");
         ret->store(-1, "", false);
     }
     else
     {
+        if(bison_verbose)
+            cpsl_log->out << "#callfunc else on line " << yylineno << endl;
+        set(tmp->name(), "$v0");
         ret->reg = tmp;
         ret->store(-1, "$fp");
     }
@@ -696,6 +709,7 @@ Expression* SymbolTable::arrayIndex(Expression *parent, Expression *index)
     Symbol *new_sym = new Symbol(newName, 0, ar_sym->type->array_type, delta_offset->reg, ar_sym->global);
     Expression *ret = new Expression(new_sym);
     delta_offset->reg = NULL;
+    parent->free();
 
     return ret;
 }

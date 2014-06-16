@@ -56,7 +56,7 @@ class Expression
 
         void print(); //print expression result to prompt
 
-        void loadInTemp(bool force = false);
+        void loadInTemp();
         void free(); //release temporary register
 
         void invalidType(Operation op);

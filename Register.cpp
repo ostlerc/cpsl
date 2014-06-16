@@ -85,6 +85,20 @@ string Register::toString()
     return o;
 }
 
+vector<string> Register::allocatedRegisters()
+{
+    vector<string> registers;
+    for(unsigned int i = 0; i < save_registers.size(); i++)
+    {
+        if(save_registers[i]->allocated)
+            registers.push_back("$s" + to_string(i));
+
+        if(temp_registers[i]->allocated)
+            registers.push_back("$t" + to_string(i));
+    }
+    return registers;
+}
+
 void Register::ReleaseRegister(Register* reg)
 {
     if(bison_verbose)

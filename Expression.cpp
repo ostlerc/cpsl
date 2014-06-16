@@ -506,13 +506,12 @@ void Expression::print()
     free();
 }
 
-void Expression::loadInTemp(bool force)
+void Expression::loadInTemp()
 {
-    if(reg && !force)//already done!
+    if(reg)//already done!
         return;
 
-    if(!force)
-        reg = Register::FindRegister(Register::Temp);
+    reg = Register::FindRegister(Register::Temp);
 
     if(!reg)
     {

@@ -20,6 +20,8 @@ class Register
         std::string name();
         std::string toString();
 
+        static std::vector<std::string> allocatedRegisters();
+
     private:
         Register(int reg_num, RegisterType type);
         virtual ~Register();
