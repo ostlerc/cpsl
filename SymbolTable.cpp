@@ -271,19 +271,11 @@ void SymbolTable::end()
     exitScope();
 }
 
-Expression* SymbolTable::assign(std::string s, Expression* e)
-{
-    e->assign(findSymbol(s));
-    checkRegisters();
-    return e;
-}
-
 Expression* SymbolTable::assign(Expression* lhs, Expression* e)
 {
-    e->assign(lhs->symbol);
-    lhs->free();
+    e->assign(lhs);
     checkRegisters();
-    return e;
+    return lhs;
 }
 
 string* SymbolTable::whileStart()
@@ -481,15 +473,6 @@ void SymbolTable::_return(Expression *exp)
             exit(1);
         }
 
-        if(exp->symbol->global && (exp->symbol->type->vt == Type::Array || exp->symbol->type->vt == Type::Record))
-        {
-            Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), exp->symbol->type, false);
-            Expression *ret = new Expression(ret_sym);
-            if(bison_verbose)
-                cpsl_log->out << " #assigning variable after return on line " << yylineno << endl;
-            exp = assign(ret, exp);
-        }
-
         exp->loadInTemp();
 
         cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero #Setting return argument on line " << yylineno << endl;
@@ -529,7 +512,7 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     }
 
     if(bison_verbose)
-        cpsl_log->out << "#caller procpsl_logue" << endl;
+        cpsl_log->out << "#caller prologue" << endl;
     for(auto& reg : Register::allocatedRegisters())
             push(reg);
     push("$ra");
@@ -541,7 +524,7 @@ Symbol* SymbolTable::procBoiler(std::string proc, vector<Expression*> expr_list,
     Register::ReleaseRegister(tmp);
     cpsl_log->out << "\tjal proc." << lbl << " # calling procedure " << proc << " on line " << yylineno << endl;
     if(bison_verbose)
-        cpsl_log->out << "#caller epicpsl_logue" << endl;
+        cpsl_log->out << "#caller epiclogue" << endl;
     set("$sp","$fp");
     pop("$fp");
     pop("$ra");
@@ -633,9 +616,9 @@ Type* SymbolTable::arrayType(Expression *lhs, Expression *rhs, Type *type)
 
     int range = rhs->symbol->int_value - lhs->symbol->int_value;
 
-    if(range < 1)
+    if(range < 0)
     {
-        cerr << "Unsupported array range '" << range << "'. Must be greater than 0 on line " << yylineno << endl;
+        cerr << "Unsupported array size '" << range+1 << "'. Must be greater than 0 on line " << yylineno << endl;
         exit(1);
     }
 
@@ -789,6 +772,7 @@ Expression* SymbolTable::recordMember(Expression* rec, std::string member)
     memberSym->rp = rec->reg;
     memberSym->setReg(memberSym->rp->name());
     memberSym->offset *= rec->symbol->global ? 1 : -1;
+    memberSym->global = rec->symbol->global;
     rec->reg = NULL;
     rec->free();
 

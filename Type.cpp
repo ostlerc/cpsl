@@ -98,7 +98,6 @@ bool Type::isFoldable(ValueType type)
         case Integer:
         case Char:
         case Bool:
-        case Unknown:
         case Record:
         case Array:
             return false;
@@ -120,9 +119,6 @@ bool Type::match(ValueType lhs, ValueType rhs)
         return false;
 
     if(lhs == Procedure || rhs == Procedure)
-        return false;
-
-    if(lhs == Unknown || rhs == Unknown)
         return false;
 
     if(lhs == Array || rhs == Array)

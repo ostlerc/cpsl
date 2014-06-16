@@ -114,11 +114,6 @@ void Symbol::read()
                 cpsl_log->out << "\tsb $v0, " << offset << "(" << reg() << ")" << endl;
             }
             break;
-        case Type::Unknown:
-            {
-                //Do nothing for unknown types right now
-            }
-            break;
         default:
             cerr << "Unsupported read type " << toString() << " on line " << yylineno << endl;
             exit(1);

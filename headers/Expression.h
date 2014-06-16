@@ -24,7 +24,7 @@ class Expression
 
         Expression* unimp(Expression* e);
 
-        void assign(Symbol* s);
+        void assign(Expression* e);
 
         enum Operation
         {

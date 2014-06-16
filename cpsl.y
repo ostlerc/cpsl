@@ -202,7 +202,7 @@ forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::insta
 forExpr: forAssign TOSYM     expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ); }
        | forAssign DOWNTOSYM expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred); }
        ;
-forAssign: IDENTSYM ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign(*$1, $3); }
+forAssign: lValue ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign($1, $3); }
          ;
 stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
              ;

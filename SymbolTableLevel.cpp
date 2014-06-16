@@ -138,6 +138,8 @@ Symbol* SymbolTableLevel::addVariable(std::string id, Type *type, bool named)
     Symbol *sym = new Symbol(id, offset, type, globalScope);
     int size = type->size;
 
+    cpsl_log->out << "#added variable(" << id << ") global?" << globalScope << endl;
+
     if(!type->isConst())
     {
         if(globalScope && named)
