@@ -67,6 +67,8 @@ extern "C" int yylex();
 %type <str_val> ifExpr;    /*return end label*/
 %type <str_val> elseifExpr;
 %type <exprptr> forAssign;
+%type <exprptr> toForExpr;
+%type <exprptr> downtoForExpr;
 %type <str_val> repeatHead;
 %type <param_list> procedureParams;
 %type <param_list> functionParams;
@@ -196,11 +198,13 @@ whileHead: WHILESYM { $$ = SymbolTable::instance()->whileStart(); }
 repeatStatement: repeatHead statementSequence UNTILSYM expression { SymbolTable::instance()->repeatStatement($1, $4); }
                ;
 repeatHead: REPEATSYM { $$ = SymbolTable::instance()->repeatHead(); }
-forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement(); }
+forStatement: FORSYM toForExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement($2, Expression::Succ); }
+            | FORSYM downtoForExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement($2, Expression::Pred); }
             ;
-forExpr: forAssign TOSYM     forLabel expression { SymbolTable::instance()->forExpr($1, $4, Expression::Succ); }
-       | forAssign DOWNTOSYM forLabel expression { SymbolTable::instance()->forExpr($1, $4, Expression::Pred); }
+toForExpr: forAssign TOSYM     forLabel expression { $$ = $1; SymbolTable::instance()->forExpr($1, $4, Expression::Succ); }
        ;
+downtoForExpr: forAssign DOWNTOSYM forLabel expression { $$ = $1; SymbolTable::instance()->forExpr($1, $4, Expression::Pred); }
+            ;
 forAssign: lValue ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign($1, $3); }
          ;
 forLabel: { SymbolTable::instance()->forLabel(); }

@@ -69,7 +69,7 @@ class SymbolTable
     //for
     void forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
     void forLabel();
-    void forStatement();
+    void forStatement(Expression *iter, Expression::Operation op);
 
     //repeat
     std::string* repeatHead();

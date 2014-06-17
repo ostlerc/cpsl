@@ -353,7 +353,6 @@ void SymbolTable::stop()
 void SymbolTable::forLabel()
 {
     string lbl = Symbol::GetLabel("For");
-    cpsl_log->out << "\tj " << lbl << ".begin " << endl;
     cpsl_log->out << lbl << ".start:" << endl;
     lbl_stack["For"].push(lbl);
 }
@@ -362,20 +361,12 @@ void SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operatio
 {
     string lbl = lbl_stack["For"].top();
 
-    Expression *t = lhs->exec(op); //inc or dec loop var
-    t->store();
-
-    cpsl_log->out << lbl << ".begin:" << endl;
     Expression *lt = NULL;
 
     if(op == Expression::Succ)
-    {
         lt = rhs->exec(lhs, Expression::Gte);
-    }
     else
-    {
         lt = lhs->exec(rhs, Expression::Gte);
-    }
 
     lbl_stack["stop"].push(lbl);
 
@@ -383,12 +374,14 @@ void SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operatio
     lt->free();
     lhs->free();
     rhs->free();
-    t->free();
     checkRegisters();
 }
 
-void SymbolTable::forStatement()
+void SymbolTable::forStatement(Expression *iter, Expression::Operation op)
 {
+    Expression *t = iter->exec(op); //inc or dec loop var
+    t->store();
+
     string lbl = lbl_stack["For"].top();
     lbl_stack["For"].pop();
     cpsl_log->out << "\tj " << lbl << ".start" << endl;
