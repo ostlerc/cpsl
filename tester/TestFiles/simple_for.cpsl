@@ -7,30 +7,43 @@ for a := 2 to 4 do
   write("a is ",a,'\n');
 end;
 
-write('\n');
+write('1','\n');
 
 for a := 4 downto 2 do
   write("a is ",a,'\n');
 end;
 
-write('\n');
+write('2','\n');
 
 b := 3;
 for a := 2 to b-1 do
 write("a is ",a,'\n');
 end;
 
-write('\n');
+write('3','\n');
 
 b := 5;
 for a := b-1 downto b-1 do
 write("a is ",a,'\n');
 end;
 
+write('4','\n');
+
 b := 5;
 for a := b-1 to b-1 do
 write("a is ",a,'\n');
 end;
+
+write('5','\n');
+
+for a := 1 to 0 do
+    write("don't show here!\n");
+end;
+for a := 0 downto 1 do
+    write("don't show here!\n");
+end;
+
+write('6','\n');
 
 
 END.
