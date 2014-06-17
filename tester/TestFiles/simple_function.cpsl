@@ -1,0 +1,14 @@
+VAR q : integer;
+
+function a(d,e : integer) : integer;
+
+BEGIN
+  return d+e+q;
+END;
+
+BEGIN
+
+q := 1;
+write( a(4,4), ' ', a(6,6));
+
+END.

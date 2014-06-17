@@ -1,0 +1,40 @@
+a is 2
+b is 4
+b is 3
+b is 2
+a is 3
+b is 4
+b is 3
+b is 2
+a is 4
+b is 4
+b is 3
+b is 2
+
+a is 4
+b is 2
+b is 3
+b is 4
+a is 3
+b is 2
+b is 3
+b is 4
+a is 2
+b is 2
+b is 3
+b is 4
+inner a,b=51
+inner a,b=52
+inner a,b=53
+inner a,b=54
+outer 5
+inner a,b=41
+inner a,b=42
+inner a,b=43
+outer 4
+inner a,b=31
+inner a,b=32
+outer 3
+inner a,b=21
+outer 2
+

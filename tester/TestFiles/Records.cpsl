@@ -1,0 +1,73 @@
+CONST
+  CA = 5;
+  CB = 10;
+
+TYPE
+  ntype = array[1:26] of char;
+  ptype = record
+    age : integer;
+    name : ntype;
+  end;
+
+
+VAR
+  a : ptype;
+  i : integer;
+
+function getn() : ntype;
+var
+  n:ntype;
+BEGIN
+  n[1] := 'd';
+  n[2] := 'r';
+  n[3] := 'e';
+  n[4] := 'w';
+  n[5] := 'i';
+  n[6] := ' ';
+  n[7] := 'i';
+  n[8] := 'n';
+  n[9] := 'g';
+  n[10] := 'e';
+  n[11] := 'b';
+  n[12] := 'r';
+  n[13] := 'e';
+  n[14] := 't';
+  n[15] := 's';
+  n[16] := 'e';
+  n[17] := 'n';
+  n[18] := ' ';
+  n[19] := 'i';
+  n[20] := 's';
+  n[21] := ' ';
+  n[22] := 't';
+  n[23] := 'i';
+  n[24] := 'r';
+  n[25] := 'e';
+  n[26] := 'd';
+  return n;
+END;
+
+procedure test();
+BEGIN
+  write("Hello");
+END;
+
+function getp() : ptype;
+VAR
+  p:ptype;
+BEGIN
+  p.age := 10;
+  $test();
+  p.name := getn();
+  return p;
+END;
+
+
+
+BEGIN
+  a := getp();
+  write(a.age, "\n");
+  for i := 1 to 26 do
+    write(a.name[i]);
+  end;
+ END.

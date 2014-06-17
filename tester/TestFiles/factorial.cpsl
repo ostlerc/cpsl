@@ -1,0 +1,10 @@
+VAR
+  n,f : INTEGER;
+
+BEGIN
+  f:=1;
+  for n := 1 to 13 do
+    f:=f*n;
+    WRITE(n,' ',f,'\n');
+  END;
+END.

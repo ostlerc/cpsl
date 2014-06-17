@@ -1,0 +1,49 @@
+VAR q : integer;
+
+procedure pb(a : char); forward;
+procedure pc(); forward;
+procedure a(d,e,f,g : integer); forward;
+
+procedure a(d,e,f,g : integer);
+  VAR a,b,c : integer;
+
+  BEGIN
+
+  a := 2;
+  write("in a:\n");
+  write("in a ",a,' ',q,'\n');
+  write(a,"d=",d,e,f,g,'\n');
+  pb('a');
+  write("after b ",a,' ',q,'\n');
+
+  END;
+
+procedure pb(a : char);
+  VAR b,c : integer;
+  BEGIN
+
+  write("in b ",a,' ',q,'\n');
+  pc();
+  write("after c ",a,' ',q,'\n');
+
+  END;
+
+procedure pc();
+  VAR a,b,c,q : integer;
+  BEGIN
+
+  a := 6;
+  q := 32;
+  write("in c ",a,' ',q,'\n');
+
+  END;
+
+BEGIN
+
+  q := 13;
+  a(4,succ(q),6,7);
+  q := 14;
+  a(4,succ(q),6,7);
+  write("finish");
+
+END.

@@ -1,0 +1,53 @@
+CONST
+  CA = 5;
+  CB = 10;
+
+TYPE
+  qtype = record
+    i: integer;
+    j: char;
+    k: integer;
+    l: integer;
+    end;
+  ptype = record
+    x : integer;
+    y : qtype;
+    z : char;
+  end;
+
+
+VAR
+  a : ptype;
+  b : ptype;
+
+function getRecord() : ptype;
+VAR
+  p:ptype;
+BEGIN
+    p.x := 30;
+  p.y.i := 35;
+  p.y.j := 'c';
+  p.y.k := 40;
+  p.y.l := 45;
+  p.z := 'd';
+  return p;
+END;
+
+BEGIN
+
+
+a.x := 10;
+a.y.i := 15;
+a.y.j := 'a';
+a.y.k := 20;
+a.y.l := 25;
+a.z := 'b';
+write("a.x:",a.x, "\na.y.i:",a.y.i, "\na.y.j:",a.y.j, "\na.y.k:",a.y.k, "\na.y.l:",a.y.l, "\na.z:",a.z);
+b := a;
+a := getRecord();
+write("\n\n\na.x:",a.x, "\na.y.i:",a.y.i, "\na.y.j:",a.y.j, "\na.y.k:",a.y.k, "\na.y.l:",a.y.l, "\na.z:",a.z);
+write("\n\n\nb.x:",b.x, "\nb.y.i:",b.y.i, "\nb.y.j:",b.y.j, "\nb.y.k:",b.y.k, "\nb.y.l:",b.y.l, "\nb.z:",b.z);
+
+
+
+ END.

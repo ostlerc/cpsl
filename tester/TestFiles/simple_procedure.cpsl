@@ -1,0 +1,17 @@
+VAR q : integer;
+
+procedure a();
+  VAR a,b,c : integer;
+
+  BEGIN
+
+  a := 2;
+  write(a, "\n");
+
+  END;
+
+BEGIN
+  q := 13;
+  a();
+  write("finish");
+END.
