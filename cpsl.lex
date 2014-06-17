@@ -74,7 +74,7 @@ extern int yylineno;
 \= { if(verbose) printf("operator_delimiter(%s)\n", yytext); return EQOSYM; }
 \: { if(verbose) printf("operator_delimiter(%s)\n", yytext); return COLONOSYM; }
 0x[[:digit:]a-fA-F]+ { yylval.int_val = strtol(yytext, &t, 16); if(verbose) printf("hex(%s)\n", yytext); return INTOSYM; }
-0[^x][0-7]+ { yylval.int_val = strtol(yytext, &t, 8); if(verbose) printf("octal(%s)\n", yytext); return INTOSYM; }
+0[0-7]+ { yylval.int_val = strtol(yytext, &t, 8); if(verbose) printf("octal(%s)\n", yytext); return INTOSYM; }
 [[:digit:]]+ { yylval.int_val = atoi(yytext); if(verbose) printf("integer(%s)\n", yytext); return INTOSYM; }
 '(\\.|[[:alnum:]_ .!@#$%^&*()|/])' { yylval.str_val = new std::string(yytext); if(verbose) printf("character(%s)\n", yytext); return CHAROSYM; }
 \"[^\"\n]*\" { yylval.str_val = new std::string(yytext); if(verbose) printf("string(%s)\n", yytext); return STROSYM; }
