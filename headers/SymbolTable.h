@@ -11,6 +11,7 @@
 
 class Symbol;
 class SymbolTableLevel;
+class Register;
 struct Parameters;
 struct RecordEntry;
 
@@ -66,8 +67,9 @@ class SymbolTable
     void elseifStatement(std::string lbl);
 
     //for
-    std::string* forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
-    void forStatement(std::string lbl);
+    void forExpr(Expression* lhs, Expression* rhs, Expression::Operation op);
+    void forLabel();
+    void forStatement();
 
     //repeat
     std::string* repeatHead();
@@ -114,6 +116,8 @@ class SymbolTable
     Type* boolt;
     Type* intt;
     Type* chart;
+
+    std::stack<Register*> stack_reg;
 };
 
 

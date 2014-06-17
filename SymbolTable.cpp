@@ -189,9 +189,9 @@ void SymbolTable::print(vector<Expression*> expr_list)
 
 void SymbolTable::checkRegisters()
 {
-    if(Register::reservedRegisters() > 0)
+    if(Register::reservedRegisters() > stack_reg.size())
     {
-        cerr << "failed to release all registers! line: " << yylineno << endl;
+        cerr << "failed to release all registers! allowed: " << stack_reg.size() << " line: " << yylineno << endl;
         exit(1);
     }
 }
@@ -350,33 +350,54 @@ void SymbolTable::stop()
     cpsl_log->out << "\tsyscall" << endl;
 }
 
-string* SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operation op)
+void SymbolTable::forLabel()
 {
-    string *lbl = new string(Symbol::GetLabel("For"));
-    cpsl_log->out << "\tj " << *lbl << ".begin " << endl;
-    cpsl_log->out << *lbl << ".start:" << endl;
+    string lbl = Symbol::GetLabel("For");
+    cpsl_log->out << "\tj " << lbl << ".begin " << endl;
+    cpsl_log->out << lbl << ".start:" << endl;
+    lbl_stack["For"].push(lbl);
+}
 
-    Expression *t = lhs->exec(op);
+void SymbolTable::forExpr(Expression* lhs, Expression* rhs, Expression::Operation op)
+{
+    string lbl = lbl_stack["For"].top();
+
+    Expression *t = lhs->exec(op); //inc or dec loop var
     t->store();
 
-    cpsl_log->out << *lbl << ".begin:" << endl;
-    Expression *lt = rhs->exec(lhs, op == Expression::Succ ? Expression::Gte : Expression::Lte);
-    cpsl_log->out << "\tbeq " << lt->reg->name() << ", $zero " << *lbl << ".stop # line " << yylineno << endl;
-    lbl_stack["stop"].push(*lbl);
+    cpsl_log->out << lbl << ".begin:" << endl;
+    Expression *lt = NULL;
 
+    if(op == Expression::Succ)
+    {
+        lt = rhs->exec(lhs, Expression::Gte);
+    }
+    else
+    {
+        lt = lhs->exec(rhs, Expression::Gte);
+    }
+
+    lbl_stack["stop"].push(lbl);
+
+    cpsl_log->out << "\tbeq " << lt->reg->name() << ", $zero " << lbl << ".stop # line " << yylineno << endl;
     lt->free();
     lhs->free();
     rhs->free();
     t->free();
-
-    return lbl;
+    checkRegisters();
 }
 
-void SymbolTable::forStatement(string lbl)
+void SymbolTable::forStatement()
 {
+    string lbl = lbl_stack["For"].top();
+    lbl_stack["For"].pop();
     cpsl_log->out << "\tj " << lbl << ".start" << endl;
     cpsl_log->out << lbl << ".stop: # end for on line " << yylineno << std::endl;
     lbl_stack["stop"].pop();
+    //Register *r = stack_reg.top();
+    //Register::ReleaseRegister(r);
+    //stack_reg.pop();
+    checkRegisters();
 }
 
 std::string* SymbolTable::repeatHead()

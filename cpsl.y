@@ -67,7 +67,6 @@ extern "C" int yylex();
 %type <str_val> ifExpr;    /*return end label*/
 %type <str_val> elseifExpr;
 %type <exprptr> forAssign;
-%type <str_val> forExpr;
 %type <str_val> repeatHead;
 %type <param_list> procedureParams;
 %type <param_list> functionParams;
@@ -125,7 +124,7 @@ pOrFDecls: /*empty procedures or function decls*/
 pOrFDecl: procedureDecl
         | functionDecl
         ;
-procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc(*$2,$4->list()); }
+procedureDecl: PROCEDURESYM IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM FORWARDSYM SEMIOSYM { SymbolTable::instance()->forwardProc(*$2,$4->list()); }
              | PROCEDURESYM procedureParams body SEMIOSYM { SymbolTable::instance()->endProcedure($2->list()); }
              ;
 procedureParams: IDENTSYM LPARENOSYM formalParameters RPARENOSYM SEMIOSYM { $$ = $3; SymbolTable::instance()->procedureParams(*$1,$3->list()); }
@@ -197,13 +196,15 @@ whileHead: WHILESYM { $$ = SymbolTable::instance()->whileStart(); }
 repeatStatement: repeatHead statementSequence UNTILSYM expression { SymbolTable::instance()->repeatStatement($1, $4); }
                ;
 repeatHead: REPEATSYM { $$ = SymbolTable::instance()->repeatHead(); }
-forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement(*$2); }
+forStatement: FORSYM forExpr DOSYM statementSequence ENDSYM { SymbolTable::instance()->forStatement(); }
             ;
-forExpr: forAssign TOSYM     expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Succ); }
-       | forAssign DOWNTOSYM expression { $$ = SymbolTable::instance()->forExpr($1, $3, Expression::Pred); }
+forExpr: forAssign TOSYM     forLabel expression { SymbolTable::instance()->forExpr($1, $4, Expression::Succ); }
+       | forAssign DOWNTOSYM forLabel expression { SymbolTable::instance()->forExpr($1, $4, Expression::Pred); }
        ;
 forAssign: lValue ASSIGNOSYM expression { $$ = SymbolTable::instance()->assign($1, $3); }
          ;
+forLabel: { SymbolTable::instance()->forLabel(); }
+        ;
 stopStatement: STOPSYM { SymbolTable::instance()->stop(); }
              ;
 returnStatement: RETURNSYM expression { SymbolTable::instance()->_return($2); }
