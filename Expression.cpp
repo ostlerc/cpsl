@@ -121,46 +121,47 @@ Expression* Expression::exec(Expression* e, Operation op)
         if(bison_verbose)
             cout << toString() << " " << toString(op) << " folding " << e->toString() << ", lhs=" << lhs_v << ", rhs=" << rhs_v << " line: " << yylineno << endl;
 
+        Expression *e = new Expression(this);
         switch(op)
         {
             case Add:
-                setVal(lhs_v + rhs_v);
+                e->setVal(lhs_v + rhs_v);
                 break;
             case Sub:
-                setVal(lhs_v - rhs_v);
+                e->setVal(lhs_v - rhs_v);
                 break;
             case Mul:
-                setVal(lhs_v * rhs_v);
+                e->setVal(lhs_v * rhs_v);
                 break;
             case Div:
-                setVal(lhs_v / rhs_v);
+                e->setVal(lhs_v / rhs_v);
                 break;
             case Mod:
-                setVal(lhs_v % rhs_v);
+                e->setVal(lhs_v % rhs_v);
                 break;
             case Eq:
-                setVal(lhs_v == rhs_v);
+                e->setVal(lhs_v == rhs_v);
                 break;
             case Ne:
-                setVal(lhs_v != rhs_v);
+                e->setVal(lhs_v != rhs_v);
                 break;
             case Lt:
-                setVal(lhs_v < rhs_v);
+                e->setVal(lhs_v < rhs_v);
                 break;
             case Gt:
-                setVal(lhs_v > rhs_v);
+                e->setVal(lhs_v > rhs_v);
                 break;
             case Lte:
-                setVal(lhs_v <= rhs_v);
+                e->setVal(lhs_v <= rhs_v);
                 break;
             case Gte:
-                setVal(lhs_v >= rhs_v);
+                e->setVal(lhs_v >= rhs_v);
                 break;
             case Bar:
-                setVal(lhs_v || rhs_v);
+                e->setVal(lhs_v || rhs_v);
                 break;
             case Amp:
-                setVal(lhs_v && rhs_v);
+                e->setVal(lhs_v && rhs_v);
                 break;
             default:
                 {
@@ -168,15 +169,16 @@ Expression* Expression::exec(Expression* e, Operation op)
                     exit(1);
                 }
         }
-        return this;
+        return e;
     }
     switch(symbol->type->vt)
     {
         case Type::Integer:
         case Type::Const_Integer:
+        case Type::Const_Char:
+        case Type::Const_Bool:
         case Type::Bool:
         case Type::Char:
-        case Type::Const_Char:
             {
                 loadInTemp();
 

@@ -16,7 +16,7 @@ CPSLDIR=~/src/cpsl/ #where cpsl compiler binary lives
 BINARY=cpsl #binary name
 ASM=asm/ #tmp directory for asm files for mars to run
 
-MARSDIR=../mars/
+MARSDIR=~/src/mars/
 MARSJAR=Mars4_4.jar
 
 if [ -z $1 ]; then
