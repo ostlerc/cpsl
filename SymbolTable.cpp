@@ -487,6 +487,13 @@ void SymbolTable::_return(Expression *exp)
             exit(1);
         }
 
+        if(exp->symbol->global && (exp->symbol->type->vt == Type::Array || exp->symbol->type->vt == Type::Record))
+        {
+            Symbol *ret_sym = levels.back()->addVariable(Symbol::GetLabel("ret"), exp->symbol->type, false);
+            Expression *ret = new Expression(ret_sym);
+            exp = assign(ret, exp);
+        }
+
         exp->loadInTemp();
 
         cpsl_log->out << "\tadd $v0, " << exp->reg->name() << ", $zero #Setting return argument on line " << yylineno << endl;
