@@ -3,7 +3,7 @@
 on_die()
 {
   echo
-  exit 0;
+  exit 1;
 }
 
 cd `dirname "$0"`
@@ -34,10 +34,13 @@ mkdir -p $ASM $RESULTS
 trap on_die SIGINT
 trap on_die TERM
 
+ret=0
+
 for file in $files; do
 
     if [[ ! -f ${TESTDIR}${file} ]]; then
         echo "File '${file}' not found"
+        ret=1
         continue
     fi
 
@@ -45,6 +48,7 @@ for file in $files; do
 
     if [ $? -ne 0 ]; then
         echo "Error running: ${CPSLDIR}${BINARY} ${TESTDIR}${file} > ${ASM}${file}"
+        ret=1
         continue
     fi
 
@@ -53,9 +57,11 @@ for file in $files; do
 
     if [ $? -ne 0 ]; then
         echo "Error running: java -jar nc 1000000 ${MARSDIR}${MARSJAR} ${ASM}${file} > ${RESULTS}${file}"
+        ret=1
         continue
     fi
     echo "...finished"
 
     cmp ${RESULTS}${file} ${BASE}${file}
 done
+exit $ret

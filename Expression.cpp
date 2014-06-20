@@ -658,11 +658,8 @@ void Expression::assign(Expression* lhs)
 
     if(lhs->symbol->type->isConst())
     {
-        if(bison_verbose)
-        {
-            cerr << "const lValue (" << toString() << ") assignment not allowed on line " << yylineno << endl;
-            exit(1);
-        }
+        cerr << "const lValue (" << toString() << ") assignment not allowed on line " << yylineno << endl;
+        exit(1);
         return;
     }
 
