@@ -189,7 +189,7 @@ void SymbolTable::print(vector<Expression*> expr_list)
 
 void SymbolTable::checkRegisters()
 {
-    if(Register::reservedRegisters() > stack_reg.size())
+    if(Register::reservedRegisters() > int(stack_reg.size()))
     {
         cerr << "failed to release all registers! allowed: " << stack_reg.size() << " line: " << yylineno << endl;
         exit(1);
